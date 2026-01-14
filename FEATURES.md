@@ -34,6 +34,11 @@
 
 ---
 
+**⚠️ Note:**
+The `parseDocumentation` function still needs further improvement. The data it returns (description, syntax, parameters, examples, related functions, etc.) is not always 100% accurate or perfectly formatted. Some edge cases and wiki inconsistencies remain. See AGENTS.md for architectural notes and update plans.
+
+---
+
 ## 🚀 Planned Features
 
 ### High Priority

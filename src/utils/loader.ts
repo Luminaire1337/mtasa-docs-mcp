@@ -66,27 +66,47 @@ export const fetchFunctionDoc = async (
   functionName: string,
   useCache: boolean = true
 ): Promise<CachedDoc | null> => {
-  // Check cache
-  if (useCache) {
-    const cached = queries.getDoc().get(functionName) as CachedDoc | undefined;
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.error(`Using cached doc for ${functionName}`);
-      return cached;
-    }
-  }
-
-  // Fetch from wiki
-  console.error(`Fetching ${functionName} from wiki...`);
   try {
-    const url = `https://wiki.multitheftauto.com/wiki/${functionName}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    // Check cache
+    if (useCache) {
+      const cached = queries.getDoc().get(functionName) as
+        | CachedDoc
+        | undefined;
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.error(`Using cached doc for ${functionName}`);
+        return cached;
+      }
     }
 
-    const html = await response.text();
-    const docData = parseDocumentation(html, functionName);
+    // Try multiple wiki URL variants
+    console.error(`Fetching ${functionName} from wiki...`);
+    const urlVariants = [
+      functionName, // original
+      functionName.charAt(0).toUpperCase() + functionName.slice(1), // PascalCase
+      functionName.toLowerCase(), // all lowercase
+    ];
+    let html = null;
+    let usedUrl = null;
+
+    for (const variant of urlVariants) {
+      const url = `https://wiki.multitheftauto.com/wiki/${variant}`;
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          html = await response.text();
+          // Use the final redirected URL if available
+          usedUrl = response.url || url;
+          break;
+        }
+      } catch (e) {
+        // ignore and try next
+      }
+    }
+    if (!html || !usedUrl) {
+      throw new Error(`Could not fetch wiki page for ${functionName}`);
+    }
+
+    const docData = parseDocumentation(html, functionName, usedUrl);
 
     // Extract related functions from wiki
     const relatedList: string[] = [];
@@ -107,7 +127,10 @@ export const fetchFunctionDoc = async (
 
     const doc: CachedDoc = {
       ...docData,
-      related_functions: relatedList.join(", "),
+      related_functions:
+        docData.related_functions && docData.related_functions.length > 0
+          ? docData.related_functions
+          : relatedList.join(", "),
     };
 
     // Store in database

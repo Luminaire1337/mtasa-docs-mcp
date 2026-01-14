@@ -16,11 +16,12 @@ export const stripHtml = (html: string): string => {
 
 export const parseDocumentation = (
   html: string,
-  functionName: string
+  functionName: string,
+  urlOverride?: string
 ): Omit<CachedDoc, "embedding"> => {
   const doc: Partial<Omit<CachedDoc, "embedding">> = {
     function_name: functionName,
-    url: `https://wiki.multitheftauto.com/wiki/${functionName}`,
+    url: urlOverride,
     timestamp: Date.now(),
   };
 
@@ -47,49 +48,59 @@ export const parseDocumentation = (
     }
   }
 
-  // Extract syntax
-  const syntaxList: string[] = [];
+  // Extract syntax: only the first <pre> after Syntax heading
+  let syntaxBlock = "";
   const syntaxSection = html.match(/Syntax[\s\S]*?<pre[^>]*>(.*?)<\/pre>/i);
   if (syntaxSection && syntaxSection[1]) {
-    syntaxList.push(stripHtml(syntaxSection[1]));
+    syntaxBlock = stripHtml(syntaxSection[1]);
   }
-
-  const allPreTags = html.matchAll(/<pre[^>]*>(.*?)<\/pre>/gis);
-  for (const match of allPreTags) {
-    if (!match[1]) continue;
-    const code = stripHtml(match[1]).trim();
-    if (code && !syntaxList.includes(code) && syntaxList.length < 3) {
-      if (
-        code.includes(functionName) ||
-        code.includes("function") ||
-        code.includes("=")
-      ) {
-        syntaxList.push(code);
-      }
-    }
-  }
-  doc.syntax = syntaxList.join("\n---\n");
+  doc.syntax = syntaxBlock;
 
   // Extract examples
   const examplesList: string[] = [];
+
+  // Pattern 1: <syntaxhighlight> tags (some wikis use this)
   const exampleMatches = html.matchAll(
     /<syntaxhighlight[^>]*lang="lua"[^>]*>(.*?)<\/syntaxhighlight>/gis
   );
   for (const match of exampleMatches) {
     if (!match[1]) continue;
     const example = stripHtml(match[1]).trim();
-    if (example && example.length > 20) {
+    if (example && example.length > 20 && example !== syntaxBlock) {
       examplesList.push(example);
     }
   }
 
+  // Pattern 2: <pre class="prettyprint lang-lua"> tags (MTA wiki uses this)
+  const preMatches = html.matchAll(
+    /<pre[^>]*class="prettyprint[^"]*lang-lua[^"]*"[^>]*>(.*?)<\/pre>/gis
+  );
+  for (const match of preMatches) {
+    if (!match[1]) continue;
+    const example = stripHtml(match[1]).trim();
+    if (
+      example &&
+      example.length > 20 &&
+      example !== syntaxBlock &&
+      !examplesList.includes(example)
+    ) {
+      examplesList.push(example);
+    }
+  }
+
+  // Pattern 3: Any <pre> tag after "Example" heading (fallback)
   const examplePreMatches = html.matchAll(
     /Example[\s\S]{0,100}<pre[^>]*>(.*?)<\/pre>/gis
   );
   for (const match of examplePreMatches) {
     if (!match[1]) continue;
     const example = stripHtml(match[1]).trim();
-    if (example && !examplesList.includes(example) && example.length > 20) {
+    if (
+      example &&
+      example.length > 20 &&
+      example !== syntaxBlock &&
+      !examplesList.includes(example)
+    ) {
       examplesList.push(example);
     }
   }
@@ -142,19 +153,26 @@ export const parseDocumentation = (
     doc.returns = stripHtml(returnsMatch[0]).substring(0, 500);
   }
 
+  // Remove #catlinks section to avoid category/footer links
+  const htmlNoCatlinks = html.replace(
+    /<div id="catlinks"[\s\S]*?<\/div>\s*<\/div>/i,
+    ""
+  );
+
   // Extract related functions from "See Also" section
   const relatedFunctions: string[] = [];
-  const seeAlsoMatch = html.match(
+  const seeAlsoMatch = htmlNoCatlinks.match(
     /<h2[^>]*>\s*(?:<[^>]*>)*\s*See\s+Also[\s\S]*?(?=<h2|$)/i
   );
   if (seeAlsoMatch) {
-    const funcLinks = seeAlsoMatch[0].matchAll(
-      /<a[^>]*(?:href|title)="[^"]*\/wiki\/([^"]+)"[^>]*>([^<]+)<\/a>/gi
+    // Only grab <li><a ...>...</a></li> elements
+    const liLinks = seeAlsoMatch[0].matchAll(
+      /<li>\s*<a[^>]*(?:href|title)="[^"]*\/wiki\/([^"]+)"[^>]*>([^<]+)<\/a>\s*<\/li>/gi
     );
-    for (const match of funcLinks) {
-      const funcName = match[1] || match[2];
-      if (funcName && !funcName.includes(":") && !funcName.includes("/")) {
-        relatedFunctions.push(funcName);
+    for (const match of liLinks) {
+      const linkText = match[2];
+      if (linkText && !linkText.includes(":") && !linkText.includes("/")) {
+        relatedFunctions.push(linkText);
       }
     }
   }
