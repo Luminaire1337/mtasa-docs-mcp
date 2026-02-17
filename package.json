@@ -37,7 +37,7 @@
   ],
   "packageManager": "pnpm@10.27.0",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@sqliteai/sqlite-vector": "^0.9.52",
     "better-sqlite3": "^12.6.0",
     "zod": "^4.3.5"
