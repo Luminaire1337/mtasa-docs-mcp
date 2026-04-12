@@ -37,15 +37,15 @@
   ],
   "packageManager": "pnpm@10.27.0",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0",
-    "@sqliteai/sqlite-vector": "^0.9.52",
-    "better-sqlite3": "^12.6.0",
-    "zod": "^4.3.5"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@sqliteai/sqlite-vector": "^0.9.94",
+    "better-sqlite3": "^12.8.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.0.8",
-    "esbuild": "^0.27.2",
-    "typescript": "^5.9.3"
+    "@types/node": "^25.5.2",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.2"
   }
 }
