@@ -16,9 +16,9 @@ export const FUNCTION_TYPES: Record<number, FunctionTypeInfo> = {
 export const DB_PATH = path.join(
   os.tmpdir(),
   "mtasa-mcp-cache",
-  "mtasa_docs.db"
+  "mtasa_docs.db",
 );
 
-export const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export const VECTOR_DIMENSIONS = 384; // Dimension for embedding vectors

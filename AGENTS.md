@@ -34,7 +34,7 @@ An MCP (Model Context Protocol) server that provides AI assistants with access t
 - **Database**: better-sqlite3 + @sqliteai/sqlite-vector
 - **Bundler**: esbuild
 - **Package Manager**: pnpm (but supports npm/yarn/bun via postinstall)
-- **MCP SDK**: @modelcontextprotocol/sdk v1.25.2
+- **MCP SDK**: @modelcontextprotocol/sdk v1.29.0
 
 ### Project Structure
 
@@ -201,7 +201,7 @@ server.registerPrompt(
         },
       },
     ],
-  })
+  }),
 );
 ```
 
@@ -572,6 +572,18 @@ Or use `pnpm inspector` for testing.
 - Prefix interfaces with purpose: `MtasaFunction`, `CachedDoc`
 - Use `const` over `let` where possible
 
+### Agent Development Cycle
+
+For substantial features, refactors, or multi-file updates, follow a full development cycle:
+
+1. Analyze the current implementation and define scope.
+2. Implement changes in coherent steps.
+3. Validate with checks (`pnpm exec tsc --noEmit`, `pnpm build`, and relevant tests).
+4. Update documentation when behavior or architecture changes.
+5. After a significant update, create a git commit with a concise message explaining the purpose of the change.
+
+This keeps progress shippable and avoids leaving large, uncommitted updates in the working tree.
+
 ### Database Changes
 
 When modifying schema:
@@ -605,7 +617,7 @@ server.registerTool(
         },
       ],
     };
-  }
+  },
 );
 ```
 

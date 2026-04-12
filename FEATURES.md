@@ -1,6 +1,6 @@
 # MTA:SA Documentation MCP Server - Features & Roadmap
 
-## 🎉 Current Features (v2.0.0)
+## 🎉 Current Features (v1.0.0)
 
 ### Core Functionality
 
@@ -211,21 +211,21 @@ The `parseDocumentation` function still needs further improvement. The data it r
 
 ## 🛠️ Implementation Priority
 
-### Phase 1 (Next Release - v2.1)
+### Phase 1 (Next Release - v1.1)
 
 1. Function signature autocomplete
 2. Event handler templates
 3. TypeScript type definitions
 4. Better error messages
 
-### Phase 2 (v2.2)
+### Phase 2 (v1.2)
 
 1. Natural language query
 2. Code snippet generation
 3. Migration helper for deprecated functions
 4. Wiki page versioning
 
-### Phase 3 (v3.0)
+### Phase 3 (v2.0)
 
 1. Plugin system
 2. VSCode extension

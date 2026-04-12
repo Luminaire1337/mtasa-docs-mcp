@@ -1,33 +1,10 @@
 import Database from "better-sqlite3";
 import * as fs from "fs";
 import * as path from "path";
-import { createRequire } from "module";
+import { getExtensionPath } from "@sqliteai/sqlite-vector";
 import { DB_PATH } from "../config/constants.js";
 
-const require = createRequire(import.meta.url);
-
-export let db: Database.Database;
-
-const getVectorExtensionPath = (): string => {
-  const arch =
-    process.arch === "x64"
-      ? "x86_64"
-      : process.arch === "arm64"
-      ? "arm64"
-      : process.arch;
-  const platformName = `${process.platform}-${arch}`;
-  const packageName = `@sqliteai/sqlite-vector-${platformName}`;
-
-  try {
-    const platformPackage = require(packageName);
-    if (platformPackage?.path && fs.existsSync(platformPackage.path)) {
-      return platformPackage.path;
-    }
-    throw new Error(`Invalid extension path for ${platformName}`);
-  } catch {
-    throw new Error(`SQLite Vector extension not found: ${packageName}`);
-  }
-};
+export let db!: Database.Database;
 
 export const initializeDatabase = (): void => {
   // Ensure directory exists
@@ -39,8 +16,12 @@ export const initializeDatabase = (): void => {
   // Initialize SQLite database
   db = new Database(DB_PATH);
 
-  // Load vector extension (postinstall ensures platform driver is present)
-  db.loadExtension(getVectorExtensionPath());
+  // Load vector extension using upstream resolver
+  try {
+    db.loadExtension(getExtensionPath());
+  } catch (error) {
+    throw new Error(`Failed to load SQLite vector extension: ${String(error)}`);
+  }
 
   // Enable WAL mode for better concurrency
   db.pragma("journal_mode = WAL");

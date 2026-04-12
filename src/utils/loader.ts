@@ -6,23 +6,115 @@ import { FUNCTION_TYPES, CACHE_DURATION } from "../config/constants.js";
 import type { MtasaFunction, CachedDoc } from "../types/interfaces.js";
 
 export const allFunctions: Map<string, MtasaFunction> = new Map();
+export const functionNameLookup: Map<string, string> = new Map();
+
+const WIKI_BASE_URL = "https://wiki.multitheftauto.com/wiki";
+
+const dedupe = (values: string[]): string[] => {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      continue;
+    }
+
+    const key = normalized.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(normalized);
+    }
+  }
+
+  return result;
+};
+
+const normalizeInputName = (name: string): string => {
+  return name.trim();
+};
+
+const toWikiTitleCase = (name: string): string => {
+  if (name.length === 0) {
+    return name;
+  }
+
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
+const getUrlVariants = (functionName: string): string[] => {
+  const normalized = normalizeInputName(functionName);
+  return dedupe([
+    normalized,
+    toWikiTitleCase(normalized),
+    normalized.toLowerCase(),
+  ]);
+};
+
+const registerFunctionInMaps = (
+  func: MtasaFunction,
+  functionsMap: Map<string, MtasaFunction>,
+  lookupMap: Map<string, string>,
+): void => {
+  functionsMap.set(func.name, func);
+  lookupMap.set(func.name.toLowerCase(), func.name);
+};
+
+const registerFunction = (func: MtasaFunction): void => {
+  registerFunctionInMaps(func, allFunctions, functionNameLookup);
+};
+
+const resolveFunctionName = (name: string): string | undefined => {
+  return functionNameLookup.get(name.toLowerCase());
+};
+
+export const canonicalizeFunctionName = (name: string): string => {
+  const trimmed = normalizeInputName(name);
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+
+  return resolveFunctionName(trimmed) ?? trimmed;
+};
+
+export const hydrateFunctionsFromDatabase = (): number => {
+  allFunctions.clear();
+  functionNameLookup.clear();
+
+  const rows = db
+    .prepare("SELECT * FROM function_metadata")
+    .all() as MtasaFunction[];
+
+  for (const row of rows) {
+    registerFunction(row);
+  }
+
+  return rows.length;
+};
 
 export const loadMtasaFunctions = async (): Promise<void> => {
   try {
     const [luaRes, mtaRes] = await Promise.all([
       fetch(
-        "https://wiki.multitheftauto.com/extensions/_MTAThemeExtensions/luafuncs.js"
+        "https://wiki.multitheftauto.com/extensions/_MTAThemeExtensions/luafuncs.js",
       ),
       fetch(
-        "https://wiki.multitheftauto.com/extensions/_MTAThemeExtensions/mtafuncs.js"
+        "https://wiki.multitheftauto.com/extensions/_MTAThemeExtensions/mtafuncs.js",
       ),
     ]);
 
     const luaText = await luaRes.text();
     const mtaText = await mtaRes.text();
 
-    parseFunctionList(luaText);
-    parseFunctionList(mtaText);
+    const nextFunctions = new Map<string, MtasaFunction>();
+    const nextLookup = new Map<string, string>();
+
+    const registerNextFunction = (func: MtasaFunction): void => {
+      registerFunctionInMaps(func, nextFunctions, nextLookup);
+    };
+
+    parseFunctionList(luaText, registerNextFunction);
+    parseFunctionList(mtaText, registerNextFunction);
 
     // Store in database
     const insertMany = db.transaction((functions: MtasaFunction[]) => {
@@ -32,7 +124,14 @@ export const loadMtasaFunctions = async (): Promise<void> => {
       }
     });
 
-    insertMany(Array.from(allFunctions.values()));
+    insertMany(Array.from(nextFunctions.values()));
+
+    allFunctions.clear();
+    functionNameLookup.clear();
+
+    for (const func of nextFunctions.values()) {
+      registerFunction(func);
+    }
 
     console.error(`Loaded ${allFunctions.size} MTA:SA functions into database`);
   } catch (error) {
@@ -40,20 +139,23 @@ export const loadMtasaFunctions = async (): Promise<void> => {
   }
 };
 
-const parseFunctionList = (jsContent: string): void => {
+const parseFunctionList = (
+  jsContent: string,
+  register: (func: MtasaFunction) => void,
+): void => {
   const regex = /mh\['([^']+)'\]\s*=\s*(\d+)/g;
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = regex.exec(jsContent)) !== null) {
     const [, name, typeStr] = match;
     if (!name || !typeStr) continue;
-    const type = parseInt(typeStr);
+    const type = Number.parseInt(typeStr, 10);
     const typeInfo = FUNCTION_TYPES[type] || {
       category: "Unknown",
       side: "shared" as const,
     };
 
-    allFunctions.set(name, {
+    register({
       name,
       type,
       category: typeInfo.category,
@@ -64,32 +166,33 @@ const parseFunctionList = (jsContent: string): void => {
 
 export const fetchFunctionDoc = async (
   functionName: string,
-  useCache: boolean = true
+  useCache: boolean = true,
 ): Promise<CachedDoc | null> => {
   try {
+    const canonicalName = normalizeInputName(functionName);
+    if (canonicalName.length === 0) {
+      throw new Error("Function name is required");
+    }
+
     // Check cache
     if (useCache) {
-      const cached = queries.getDoc().get(functionName) as
+      const cached = queries.getDoc().get(canonicalName) as
         | CachedDoc
         | undefined;
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        console.error(`Using cached doc for ${functionName}`);
+        console.error(`Using cached doc for ${canonicalName}`);
         return cached;
       }
     }
 
     // Try multiple wiki URL variants
-    console.error(`Fetching ${functionName} from wiki...`);
-    const urlVariants = [
-      functionName, // original
-      functionName.charAt(0).toUpperCase() + functionName.slice(1), // PascalCase
-      functionName.toLowerCase(), // all lowercase
-    ];
-    let html = null;
-    let usedUrl = null;
+    console.error(`Fetching ${canonicalName} from wiki...`);
+    const urlVariants = getUrlVariants(canonicalName);
+    let html: string | null = null;
+    let usedUrl: string | null = null;
 
     for (const variant of urlVariants) {
-      const url = `https://wiki.multitheftauto.com/wiki/${variant}`;
+      const url = `${WIKI_BASE_URL}/${variant}`;
       try {
         const response = await fetch(url);
         if (response.ok) {
@@ -98,15 +201,15 @@ export const fetchFunctionDoc = async (
           usedUrl = response.url || url;
           break;
         }
-      } catch (e) {
+      } catch {
         // ignore and try next
       }
     }
     if (!html || !usedUrl) {
-      throw new Error(`Could not fetch wiki page for ${functionName}`);
+      throw new Error(`Could not fetch wiki page for ${canonicalName}`);
     }
 
-    const docData = parseDocumentation(html, functionName, usedUrl);
+    const docData = parseDocumentation(html, canonicalName, usedUrl);
 
     // Extract related functions from wiki
     const relatedList: string[] = [];
@@ -114,9 +217,14 @@ export const fetchFunctionDoc = async (
     if (seeAlsoMatch) {
       const links = seeAlsoMatch[0].matchAll(/title="([^"]+)"/g);
       for (const link of links) {
-        const funcName = link[1];
-        if (funcName && allFunctions.has(funcName)) {
-          relatedList.push(funcName);
+        const relatedName = link[1];
+        if (!relatedName) {
+          continue;
+        }
+
+        const resolvedName = resolveFunctionName(relatedName);
+        if (resolvedName) {
+          relatedList.push(resolvedName);
         }
       }
     }
@@ -125,12 +233,17 @@ export const fetchFunctionDoc = async (
     const embedding = generateTextEmbedding(docData.full_text);
     const embeddingBuffer = vectorToBuffer(embedding);
 
+    const relatedFromParser = docData.related_functions
+      .split(",")
+      .map((name) => resolveFunctionName(normalizeInputName(name)))
+      .filter((name): name is string => typeof name === "string");
+
     const doc: CachedDoc = {
       ...docData,
-      related_functions:
-        docData.related_functions && docData.related_functions.length > 0
-          ? docData.related_functions
-          : relatedList.join(", "),
+      function_name: canonicalName,
+      related_functions: dedupe([...relatedFromParser, ...relatedList]).join(
+        ", ",
+      ),
     };
 
     // Store in database
@@ -148,7 +261,7 @@ export const fetchFunctionDoc = async (
         doc.full_text,
         doc.timestamp,
         embeddingBuffer,
-        doc.deprecated || null
+        doc.deprecated || null,
       );
 
     return doc;

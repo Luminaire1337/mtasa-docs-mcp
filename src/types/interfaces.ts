@@ -1,8 +1,10 @@
+export type MtasaSide = "client" | "server" | "shared";
+
 export interface MtasaFunction {
   name: string;
   type: number;
   category: string;
-  side: "client" | "server" | "shared";
+  side: MtasaSide;
 }
 
 export interface CachedDoc {
@@ -16,10 +18,11 @@ export interface CachedDoc {
   related_functions: string;
   full_text: string;
   timestamp: number;
-  deprecated?: string;
+  embedding?: Buffer | null;
+  deprecated?: string | null;
 }
 
 export interface FunctionTypeInfo {
   category: string;
-  side: "client" | "server" | "shared";
+  side: MtasaSide;
 }

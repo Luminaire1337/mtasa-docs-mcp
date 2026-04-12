@@ -1,4 +1,4 @@
-import { queries, getMetadata } from "../database/queries.js";
+import { getMetadata, searchByVector } from "../database/queries.js";
 import { allFunctions } from "../utils/loader.js";
 import { generateTextEmbedding, vectorToBuffer } from "./embeddings.js";
 import type { MtasaFunction } from "../types/interfaces.js";
@@ -117,17 +117,27 @@ const KEYWORD_ALIASES: Record<string, string[]> = {
  * Expand query with related function prefixes from keyword aliases
  */
 const expandQueryKeywords = (query: string): string[] => {
-  const words = query.toLowerCase().split(/\s+/);
+  const normalizedQuery = query.toLowerCase().trim();
+  const words = normalizedQuery.split(/\s+/).filter((word) => word.length > 0);
   const expanded = new Set(words);
 
-  for (const word of words) {
-    const prefixes = KEYWORD_ALIASES[word];
-    if (prefixes) {
-      prefixes.forEach((prefix) => expanded.add(prefix));
+  for (const [keyword, prefixes] of Object.entries(KEYWORD_ALIASES)) {
+    if (words.includes(keyword) || normalizedQuery.includes(keyword)) {
+      for (const prefix of prefixes) {
+        expanded.add(prefix);
+      }
     }
   }
 
   return Array.from(expanded);
+};
+
+const splitCamelCase = (value: string): string[] => {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((part) => part.length > 0);
 };
 
 /**
@@ -135,31 +145,29 @@ const expandQueryKeywords = (query: string): string[] => {
  */
 export const findRelatedFunctions = (
   query: string,
-  limit: number = 10
+  limit: number = 10,
 ): MtasaFunction[] => {
   // Generate embedding for the query
   const queryEmbedding = generateTextEmbedding(query);
   const queryBuffer = vectorToBuffer(queryEmbedding);
+  const selected = new Set<string>();
+  const results: MtasaFunction[] = [];
 
   try {
     // Try vector search first
-    const results = queries
-      .searchDocsByVector()
-      .all(queryBuffer, limit * 2) as Array<{
-      function_name: string;
-      distance: number;
-    }>;
+    const vectorResults = searchByVector(queryBuffer, limit * 2);
 
-    if (results.length > 0) {
-      const functions: MtasaFunction[] = [];
-      for (const result of results) {
+    if (vectorResults.length > 0) {
+      for (const result of vectorResults) {
         const func = getMetadata(result.function_name);
-        if (func) {
-          functions.push(func);
+        if (func && !selected.has(func.name)) {
+          selected.add(func.name);
+          results.push(func);
         }
-      }
-      if (functions.length >= limit) {
-        return functions.slice(0, limit);
+
+        if (results.length >= limit) {
+          return results;
+        }
       }
     }
   } catch (error) {
@@ -167,13 +175,19 @@ export const findRelatedFunctions = (
   }
 
   // Fall back to keyword matching on function names
-  const keywords = expandQueryKeywords(query).filter((word) => word.length > 2);
+  const keywords = expandQueryKeywords(query).filter((word) => word.length > 1);
 
   const scored: Array<{ func: MtasaFunction; score: number }> = [];
 
   for (const func of allFunctions.values()) {
+    if (selected.has(func.name)) {
+      continue;
+    }
+
     let score = 0;
     const funcNameLower = func.name.toLowerCase();
+    const nameParts = splitCamelCase(func.name);
+    const categoryLower = func.category.toLowerCase();
 
     for (const keyword of keywords) {
       // Exact prefix match gets highest score
@@ -185,12 +199,12 @@ export const findRelatedFunctions = (
         score += 10;
       }
       // Partial word match in camelCase
-      if (
-        funcNameLower
-          .split(/(?=[A-Z])/)
-          .some((part: string) => part.toLowerCase().includes(keyword))
-      ) {
+      if (nameParts.some((part) => part.includes(keyword))) {
         score += 5;
+      }
+
+      if (categoryLower.includes(keyword)) {
+        score += 2;
       }
     }
 
@@ -199,8 +213,10 @@ export const findRelatedFunctions = (
     }
   }
 
-  return scored
+  const fallbackResults = scored
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
+    .slice(0, Math.max(limit - results.length, 0))
     .map((item) => item.func);
+
+  return [...results, ...fallbackResults].slice(0, limit);
 };
