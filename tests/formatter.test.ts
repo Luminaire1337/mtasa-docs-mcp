@@ -68,4 +68,34 @@ describe("formatDocumentation", () => {
     expect(formatted).not.toContain("## Examples");
     expect(formatted).not.toContain("## Related Functions");
   });
+
+  test("hides optional arguments when explicitly disabled", () => {
+    const withOptionalArgs: CachedDoc = {
+      ...baseDoc,
+      parameters:
+        "Required Arguments\nplayer target\n\nOptional Arguments\nint timeout=5000",
+    };
+
+    const formatted = formatDocumentation(withOptionalArgs, baseFunc, {
+      includeExamples: true,
+      includeOptionalArguments: false,
+    });
+
+    expect(formatted).toContain("Required Arguments");
+    expect(formatted).not.toContain("Optional Arguments");
+  });
+
+  test("keeps optional arguments when there are no required arguments", () => {
+    const optionalOnly: CachedDoc = {
+      ...baseDoc,
+      parameters: "Optional Arguments\nint timeout=5000",
+    };
+
+    const formatted = formatDocumentation(optionalOnly, baseFunc, {
+      includeExamples: true,
+      includeOptionalArguments: false,
+    });
+
+    expect(formatted).toContain("Optional Arguments");
+  });
 });

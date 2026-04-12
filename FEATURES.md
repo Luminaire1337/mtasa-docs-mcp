@@ -1,6 +1,6 @@
 # MTA:SA Documentation MCP Server - Features & Roadmap
 
-## 🎉 Current Features (v1.0.0)
+## 🎉 Current Features (v0.9.1)
 
 ### Core Functionality
 
@@ -15,14 +15,16 @@
 
 ### Available Tools
 
-1. `search_mtasa_functions` - Search by name with filters
-2. `find_mtasa_functions_for_task` - Semantic search for features (e.g., "spawn vehicle", "gui window")
-3. `get_mtasa_function_docs` - Full documentation with examples
-4. `get_mtasa_function_examples` - Quick code reference
-5. `get_multiple_mtasa_function_docs` - Batch documentation fetching
-6. `list_mtasa_functions_by_category` - Browse by category
-7. `get_mtasa_cache_stats` - Cache statistics
-8. `clear_mtasa_cache` - Cache management
+1. `search_functions` - Search by name with filters
+2. `search_events` - Event-only search (client/server)
+3. `find_functions_for_task` - Semantic search for features (e.g., "spawn vehicle", "gui window")
+4. `find_events_for_task` - Semantic search for event-driven tasks (e.g., "on player join")
+5. `get_function_docs` - Single-entry documentation fetch
+6. `get_function_examples` - Quick code reference
+7. `get_multiple_function_docs` - Batch documentation fetching
+8. `list_functions_by_category` - Browse by category
+9. `get_cache_stats` - Cache statistics
+10. `clear_cache` - Cache management
 
 ### Technical Features
 
@@ -31,6 +33,7 @@
 - ✅ Single 574KB executable
 - ✅ Comprehensive HTML parsing from MTA:SA Wiki
 - ✅ Extracts: description, syntax, parameters, returns, examples, related functions
+- ✅ Optional arguments can be hidden in docs responses by default (`include_optional_arguments=false`)
 
 ---
 
@@ -211,21 +214,21 @@ The `parseDocumentation` function still needs further improvement. The data it r
 
 ## 🛠️ Implementation Priority
 
-### Phase 1 (Next Release - v1.1)
+### Phase 1 (Next Release - v1.1.0)
 
 1. Function signature autocomplete
 2. Event handler templates
 3. TypeScript type definitions
 4. Better error messages
 
-### Phase 2 (v1.2)
+### Phase 2 (v1.2.0)
 
 1. Natural language query
 2. Code snippet generation
 3. Migration helper for deprecated functions
 4. Wiki page versioning
 
-### Phase 3 (v2.0)
+### Phase 3 (v1.3.0)
 
 1. Plugin system
 2. VSCode extension

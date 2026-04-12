@@ -38,10 +38,30 @@ pnpm test
 This MCP server gives AI assistants access to MTA:SA function documentation with:
 
 - Vector similarity search for finding relevant functions
+- Event-first discovery tools for event handler workflows
 - Smart keyword expansion (e.g., "database" → finds `dbQuery`, `dbPoll`)
 - Deprecation warnings for outdated functions
 - SQLite caching for fast repeated access
 - MCP-first workflow guidance prompt/tool to reduce manual wiki fetching
+
+## Tools
+
+- `search_functions` - Search functions/events by name and side
+- `search_events` - Search only events (client/server)
+- `find_functions_for_task` - Semantic task-to-function/event matching
+- `find_events_for_task` - Semantic task-to-event matching
+- `get_function_docs` - Fetch docs for exactly one function/event
+- `get_multiple_function_docs` - Batch docs retrieval for multiple names
+- `get_function_examples` - Extract examples only
+- `list_functions_by_category` - Browse entries by category
+- `get_cache_stats` - Cache stats
+- `recommend_doc_workflow` - MCP-first call-plan helper
+- `clear_cache` - Clear one or all cached docs
+
+Notes:
+
+- Prefer `get_multiple_function_docs` for multi-name lookups instead of repeated single-doc calls.
+- Optional arguments are hidden by default in docs responses; set `include_optional_arguments` to `true` when needed.
 
 ## Documentation
 

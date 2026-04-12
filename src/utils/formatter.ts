@@ -1,10 +1,72 @@
 import type { CachedDoc, MtasaFunction } from "../types/interfaces.js";
 
+type FormatDocumentationOptions = {
+  includeExamples?: boolean;
+  includeOptionalArguments?: boolean;
+};
+
+const getSectionHeading = (value: string): string => {
+  const [firstLine = ""] = value.split("\n", 1);
+  return firstLine.trim().toLowerCase();
+};
+
+const filterOptionalArguments = (parameters: string): string => {
+  const blocks = parameters
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter((block) => block.length > 0);
+
+  if (blocks.length === 0) {
+    return "";
+  }
+
+  const hasRequiredOrGenericBlock = blocks.some((block) => {
+    const heading = getSectionHeading(block);
+    return (
+      heading.startsWith("required arguments") ||
+      heading.startsWith("arguments") ||
+      heading.startsWith("parameters")
+    );
+  });
+
+  const filteredBlocks = blocks.filter((block) => {
+    const heading = getSectionHeading(block);
+    if (!heading.startsWith("optional arguments")) {
+      return true;
+    }
+
+    return !hasRequiredOrGenericBlock;
+  });
+
+  return filteredBlocks.join("\n\n");
+};
+
+const normalizeOptions = (
+  optionsOrIncludeExamples?: boolean | FormatDocumentationOptions,
+): Required<FormatDocumentationOptions> => {
+  if (typeof optionsOrIncludeExamples === "boolean") {
+    return {
+      includeExamples: optionsOrIncludeExamples,
+      includeOptionalArguments: true,
+    };
+  }
+
+  return {
+    includeExamples: optionsOrIncludeExamples?.includeExamples ?? true,
+    includeOptionalArguments:
+      optionsOrIncludeExamples?.includeOptionalArguments ?? true,
+  };
+};
+
 export const formatDocumentation = (
   doc: CachedDoc,
   funcInfo: MtasaFunction,
-  includeExamples: boolean = true
+  optionsOrIncludeExamples?: boolean | FormatDocumentationOptions,
 ): string => {
+  const { includeExamples, includeOptionalArguments } = normalizeOptions(
+    optionsOrIncludeExamples,
+  );
+
   let output = `# ${funcInfo.name}\n\n`;
   output += `**Category:** ${funcInfo.category}\n`;
   output += `**Side:** ${funcInfo.side}\n`;
@@ -26,8 +88,12 @@ export const formatDocumentation = (
     });
   }
 
-  if (doc.parameters) {
-    output += `## Parameters\n${doc.parameters}\n\n`;
+  const parameters = includeOptionalArguments
+    ? doc.parameters
+    : filterOptionalArguments(doc.parameters);
+
+  if (parameters) {
+    output += `## Parameters\n${parameters}\n\n`;
   }
 
   if (doc.returns) {

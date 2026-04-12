@@ -118,22 +118,24 @@ esbuild.build({
 - Faster startup (less I/O)
 - Simpler debugging
 
-### 4. **Naming Convention: "mtasa" Prefix**
+### 4. **Naming Convention: concise tool names**
 
-**Decision**: All tools use `mtasa_` or `search_mtasa_` prefix.
+**Decision**: Tool and prompt names are concise and unprefixed; namespace comes from server id (`mtasa-docs`).
 
 **Examples**:
 
-- `search_mtasa_functions`
-- `get_mtasa_function_docs`
-- `find_mtasa_functions_for_task`
-- `recommend_mtasa_doc_workflow`
+- `search_functions`
+- `search_events`
+- `get_function_docs`
+- `find_functions_for_task`
+- `find_events_for_task`
+- `recommend_doc_workflow`
 
 **Why**:
 
-- Prevents naming conflicts with other MCP servers
-- Clear namespace in AI tool lists
-- Consistent with "mtasa-docs" server name
+- Avoids redundant names in runners that already prefix by server id
+- Keeps tool names shorter and easier for models to call correctly
+- Still namespaced by the `mtasa-docs` MCP server identity
 
 ### 5. **Type Naming: MtasaFunction (not MTAFunction)**
 
@@ -503,7 +505,7 @@ Functions to test:
 
 **Fix**:
 
-1. Clear cache: `clear_mtasa_cache` tool with `function_name: "all"`
+1. Clear cache: `clear_cache` tool with `function_name: "all"`
 2. Reload functions (triggers embedding generation)
 3. Check `embedding IS NOT NULL` in queries
 
@@ -599,7 +601,7 @@ Template:
 
 ```typescript
 server.registerTool(
-  "tool_name_with_mtasa_prefix",
+  "tool_name",
   {
     description: "Clear, concise description of what it does",
     inputSchema: {
@@ -709,7 +711,7 @@ Even advanced models sometimes:
 
 ## 📝 Changelog Summary
 
-- **v1.0.0** (January 2026): Initial release
+- **v0.9.0** (January 2026): Initial pre-release
   - 9 MCP tools for comprehensive documentation access
   - Vector similarity search using SQLite-vec
   - Smart keyword expansion (60+ aliases)
@@ -719,6 +721,13 @@ Even advanced models sometimes:
   - Multi-package-manager support (pnpm/npm/yarn/bun)
   - Single-file build with esbuild
   - 30-day intelligent caching
+
+- **v0.9.1** (April 2026): Event-first discovery and cleaner docs defaults
+  - Added `search_events` for event-only lookup
+  - Added `find_events_for_task` for event intent matching
+  - Clarified single-item scope of `get_function_docs`
+  - Added `include_optional_arguments` to single and batch docs tools (default hidden)
+  - Strengthened MCP-first usage prompt to reduce manual WebFetch fallback
 
 ---
 
@@ -756,7 +765,7 @@ A: Use `pnpm inspector` - it shows all JSON-RPC messages between client and serv
 
 **Last Updated**: January 14, 2026  
 **Maintainer**: @Luminaire1337  
-**Version**: 1.0.0  
+**Version**: 0.9.1  
 **Repository**: https://github.com/Luminaire1337/mtasa-docs-mcp  
 **License**: GPL-3.0
 
