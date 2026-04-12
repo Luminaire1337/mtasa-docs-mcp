@@ -16,6 +16,10 @@ cd mtasa-docs-mcp
 # Install dependencies
 pnpm install
 
+# If optional native dependencies were skipped by your environment,
+# reinstall to fetch sqlite-vector platform binaries:
+pnpm install --force
+
 # Build the project
 pnpm build
 

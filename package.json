@@ -27,18 +27,17 @@
     "mtasa-docs-mcp": "./build/index.js"
   },
   "scripts": {
-    "postinstall": "node scripts/postinstall.mjs",
-    "build": "node build.mjs && chmod 755 build/index.js",
+    "prepack": "node build.mjs",
+    "build": "node build.mjs",
     "inspector": "pnpx @modelcontextprotocol/inspector node ./build/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:live": "vitest run --config vitest.live.config.ts",
-    "verify": "pnpm exec tsc --noEmit && pnpm test && pnpm build"
+    "verify": "tsc --noEmit && vitest run && node build.mjs"
   },
   "files": [
-    "build",
-    "scripts"
+    "build"
   ],
   "packageManager": "pnpm@10.27.0",
   "dependencies": {

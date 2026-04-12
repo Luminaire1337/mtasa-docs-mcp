@@ -33,7 +33,7 @@ An MCP (Model Context Protocol) server that provides AI assistants with access t
 - **Language**: TypeScript
 - **Database**: better-sqlite3 + @sqliteai/sqlite-vector
 - **Bundler**: esbuild
-- **Package Manager**: pnpm (but supports npm/yarn/bun via postinstall)
+- **Package Manager**: pnpm (works with npm/yarn/bun; relies on `packageManager` and optional dependencies)
 - **MCP SDK**: @modelcontextprotocol/sdk v1.29.0
 
 ### Project Structure
@@ -81,19 +81,18 @@ loadMtasaFunctions().catch((err) => console.error(err));
 
 **Problem**: `@sqliteai/sqlite-vector` couldn't find platform-specific native module (`.node` file).
 
-**Solution**: Multi-step approach:
+**Solution**:
 
-1. Postinstall script detects package manager (pnpm/npm/yarn/bun)
-2. Installs `@sqliteai/sqlite-vector-<platform>` driver
-3. Uses `createRequire` to load from correct path
+1. Use upstream API in `@sqliteai/sqlite-vector`: `getExtensionPath()`
+2. Let package managers install platform binaries through `optionalDependencies`
+3. Keep install guidance clear when optional deps are skipped
 
 ```typescript
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const sqliteVec = require("@sqliteai/sqlite-vector");
+import { getExtensionPath } from "@sqliteai/sqlite-vector";
+db.loadExtension(getExtensionPath());
 ```
 
-**Why**: ESM imports can't load native modules from nested `node_modules` directories.
+**Why**: Keeps runtime aligned with upstream package behavior and avoids custom platform resolution logic.
 
 ### 3. **Single File Build**
 
@@ -105,11 +104,11 @@ esbuild.build({
   entryPoints: ["src/index.ts"],
   bundle: true,
   platform: "node",
-  target: "node18",
+  target: "node20",
   format: "esm",
   outfile: "build/index.js",
   minify: true,
-  external: ["better-sqlite3", "@sqliteai/sqlite-vector*"],
+  external: ["better-sqlite3", "@sqliteai/sqlite-vector"],
 });
 ```
 
@@ -473,13 +472,13 @@ Functions to test:
 
 ### 2. **"Cannot find module '@sqliteai/sqlite-vector'"**
 
-**Cause**: Platform driver not installed or ESM can't find it.
+**Cause**: Platform optional dependency was not installed.
 
 **Fix**:
 
-1. Run `pnpm install` (triggers postinstall)
-2. Check `node_modules/@sqliteai/sqlite-vector-darwin-arm64` (or your platform) exists
-3. Verify `createRequire` is used in `connection.ts`
+1. Reinstall with optional dependencies enabled: `pnpm install --force`
+2. Confirm your package manager did not use a `--no-optional` equivalent
+3. Verify `getExtensionPath()` is used in `connection.ts`
 
 ### 3. **"TypeScript error: Property 'schema' does not exist"**
 
@@ -525,16 +524,15 @@ This runs `build.mjs`:
 
 **Output**: Single `build/index.js` file (~574KB minified)
 
-### Package Manager Detection
+### Optional Dependency Resolution
 
-The `scripts/postinstall.mjs` script:
+The project relies on `@sqliteai/sqlite-vector` optional dependencies for platform binaries.
 
-1. Detects which package manager is running (pnpm/npm/yarn/bun)
-2. Installs platform-specific driver:
-   - macOS ARM64: `@sqliteai/sqlite-vector-darwin-arm64`
-   - macOS x64: `@sqliteai/sqlite-vector-darwin-x64`
-   - Linux x64: `@sqliteai/sqlite-vector-linux-x64-gnu`
-   - Windows x64: `@sqliteai/sqlite-vector-win32-x64-msvc`
+If binaries are missing on install:
+
+1. Ensure optional dependencies are not disabled by your environment
+2. Reinstall dependencies (`pnpm install --force`)
+3. Validate runtime loading with a local run/build test
 
 ### MCP Configuration
 
@@ -661,11 +659,9 @@ The MCP SDK has high-level and low-level APIs:
 
 Loading native Node.js modules (`.node` files) in ESM requires:
 
-1. `createRequire()` from `module`
-2. Proper package manager detection
-3. Platform-specific module installation
-
-Can't use `import` directly for native modules in nested dependencies.
+1. Using `getExtensionPath()` from `@sqliteai/sqlite-vector`
+2. Ensuring platform optional dependencies are installed
+3. Keeping the native package external in bundling
 
 ### 3. **Vector Embeddings Are Expensive**
 

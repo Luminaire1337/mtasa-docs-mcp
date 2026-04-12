@@ -6,6 +6,16 @@ import { DB_PATH } from "../config/constants.js";
 
 export let db!: Database.Database;
 
+const getVectorInstallHelp = (): string => {
+  return [
+    "SQLite vector extension binary was not found for this platform.",
+    "Try reinstalling dependencies without disabling optional deps:",
+    "- pnpm install --force",
+    "- npm install --force",
+    "- bun install",
+  ].join("\n");
+};
+
 export const initializeDatabase = (): void => {
   // Ensure directory exists
   const dbDir = path.dirname(DB_PATH);
@@ -20,7 +30,13 @@ export const initializeDatabase = (): void => {
   try {
     db.loadExtension(getExtensionPath());
   } catch (error) {
-    throw new Error(`Failed to load SQLite vector extension: ${String(error)}`);
+    throw new Error(
+      [
+        `Failed to load SQLite vector extension: ${String(error)}`,
+        "",
+        getVectorInstallHelp(),
+      ].join("\n"),
+    );
   }
 
   // Enable WAL mode for better concurrency

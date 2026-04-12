@@ -1,23 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "outDir": "./build",
-    "rootDir": "./src",
-
-    /* Strict Type Checking */
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "useUnknownInCatchVariables": true,
+    "noEmit": true,
 
-    /* Additional Checks */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
@@ -25,25 +15,20 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
 
-    /* Emit */
-    "declaration": false,
-    "sourceMap": false,
-    "removeComments": true,
-    "importHelpers": false,
-
-    /* Interop Constraints */
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
 
-    /* Completeness */
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "tests/**/*.ts",
+    "vitest.config.ts",
+    "vitest.live.config.ts"
+  ],
   "exclude": ["node_modules", "build"]
 }
