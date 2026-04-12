@@ -1,10 +1,29 @@
 import Database from "better-sqlite3";
 import * as fs from "fs";
 import * as path from "path";
-import { getExtensionPath } from "@sqliteai/sqlite-vector";
+import { createRequire } from "module";
+import { getExtensionPath as getEsmExtensionPath } from "@sqliteai/sqlite-vector";
 import { DB_PATH } from "../config/constants.js";
 
 export let db!: Database.Database;
+
+const require = createRequire(import.meta.url);
+
+const resolveVectorExtensionPath = (): string => {
+  try {
+    const sqliteVector = require("@sqliteai/sqlite-vector") as {
+      getExtensionPath?: () => string;
+    };
+
+    if (typeof sqliteVector.getExtensionPath === "function") {
+      return sqliteVector.getExtensionPath();
+    }
+  } catch {
+    // Fallback to ESM export below.
+  }
+
+  return getEsmExtensionPath();
+};
 
 const getVectorInstallHelp = (): string => {
   return [
@@ -28,7 +47,7 @@ export const initializeDatabase = (): void => {
 
   // Load vector extension using upstream resolver
   try {
-    db.loadExtension(getExtensionPath());
+    db.loadExtension(resolveVectorExtensionPath());
   } catch (error) {
     throw new Error(
       [

@@ -20,6 +20,9 @@ pnpm install
 # reinstall to fetch sqlite-vector platform binaries:
 pnpm install --force
 
+# If native bindings were skipped, rebuild better-sqlite3:
+pnpm rebuild better-sqlite3 --config.ignore-scripts=false
+
 # Build the project
 pnpm build
 
@@ -38,6 +41,7 @@ This MCP server gives AI assistants access to MTA:SA function documentation with
 - Smart keyword expansion (e.g., "database" → finds `dbQuery`, `dbPoll`)
 - Deprecation warnings for outdated functions
 - SQLite caching for fast repeated access
+- MCP-first workflow guidance prompt/tool to reduce manual wiki fetching
 
 ## Documentation
 

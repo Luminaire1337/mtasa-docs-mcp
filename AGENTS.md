@@ -127,6 +127,7 @@ esbuild.build({
 - `search_mtasa_functions`
 - `get_mtasa_function_docs`
 - `find_mtasa_functions_for_task`
+- `recommend_mtasa_doc_workflow`
 
 **Why**:
 
@@ -709,11 +710,11 @@ Even advanced models sometimes:
 ## 📝 Changelog Summary
 
 - **v1.0.0** (January 2026): Initial release
-  - 8 MCP tools for comprehensive documentation access
+  - 9 MCP tools for comprehensive documentation access
   - Vector similarity search using SQLite-vec
   - Smart keyword expansion (60+ aliases)
   - Deprecation detection and warnings
-  - MCP prompt for resource structure guide
+  - MCP prompts for resource structure and MCP-first usage policy
   - Async server startup for instant availability
   - Multi-package-manager support (pnpm/npm/yarn/bun)
   - Single-file build with esbuild
