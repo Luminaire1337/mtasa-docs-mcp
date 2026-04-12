@@ -631,6 +631,19 @@ server.registerTool(
 - [ ] Handles edge cases (empty results, errors)
 - [ ] Parameter validation works
 
+### Automated Test Commands
+
+- `pnpm test` - Run Vitest suite
+- `pnpm test:watch` - Run tests continuously while developing
+- `pnpm test:coverage` - Generate coverage report
+- `pnpm test:live` - Run live parser integration tests against wiki pages
+- `pnpm verify` - Run `tsc --noEmit`, tests, and build as a release gate
+
+### CI Workflows
+
+- `.github/workflows/ci.yml` - Runs on push/PR to `master`, executes `pnpm verify`
+- `.github/workflows/live-tests.yml` - Runs on manual dispatch, or on labeled PRs (`run-live-tests`) with relevant parser/live-test changes, executes `pnpm test:live`
+
 ---
 
 ## 📚 Key Learnings from Development

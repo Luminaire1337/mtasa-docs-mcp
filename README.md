@@ -21,6 +21,9 @@ pnpm build
 
 # Test with MCP inspector
 pnpm inspector
+
+# Run automated test suite
+pnpm test
 ```
 
 ## What It Does
@@ -36,6 +39,21 @@ This MCP server gives AI assistants access to MTA:SA function documentation with
 
 - **[AGENTS.md](AGENTS.md)** - Complete technical documentation for developers
 - **[FEATURES.md](FEATURES.md)** - Planned features and roadmap
+
+## Testing
+
+- `pnpm test` - Run unit tests with Vitest
+- `pnpm test:watch` - Run tests in watch mode
+- `pnpm test:coverage` - Run tests with coverage report
+- `pnpm test:live` - Run live integration tests against MTA wiki pages
+- `pnpm verify` - Run typecheck, tests, and build in one command
+
+## CI
+
+- Pull requests and pushes to `master` run `.github/workflows/ci.yml` (`pnpm verify`).
+- Live wiki checks run `.github/workflows/live-tests.yml` (`pnpm test:live`) only when:
+  - manually triggered (`workflow_dispatch`), or
+  - a PR has label `run-live-tests` and includes relevant file changes.
 
 ## License
 

@@ -46,6 +46,45 @@ const unique = (values: string[]): string[] => {
   return result;
 };
 
+const extractLegacySection = (
+  html: string,
+  headingPattern: string,
+  label: string,
+): string => {
+  const sectionRegex = new RegExp(
+    `===?\\s*${headingPattern}\\s*===?([\\s\\S]*?)(?===?\\s*[A-Za-z ]+\\s*===?|<h[23]|$)`,
+    "i",
+  );
+  const match = html.match(sectionRegex);
+
+  if (!match?.[1]) {
+    return "";
+  }
+
+  const content = stripHtml(match[1]);
+  return content ? `${label}\n${content}` : label;
+};
+
+const detectDeprecationReplacement = (value: string): string | null => {
+  const patterns = [
+    /You should use (?:predefined variable |the )?([A-Za-z_]\w*)(?: variable)? instead/i,
+    /Please use\s+([A-Za-z_]\w*)\s+instead/i,
+    /(?:deprecated|obsolete|no longer recommended)[^.]*?(?:use|replaced by|instead use)\s+([A-Za-z_]\w*)/i,
+    /predefined (?:global )?variable\s+['"`]?(?:called|named)?\s*([A-Za-z_]\w*)['"`]?\s*(?:is|called|named|whose)/i,
+    /predefined (?:global )?variable[^.]{0,80}\bcalled\s+_?([A-Za-z_]\w*)_?/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    const replacement = match?.[1]?.trim();
+    if (replacement) {
+      return replacement;
+    }
+  }
+
+  return null;
+};
+
 const getSyntaxCandidate = (html: string): string => {
   const syntaxSection = extractSection(html, "Syntax");
 
@@ -104,6 +143,35 @@ const getExamples = (html: string, syntaxBlock: string): string[] => {
   );
 };
 
+const extractDescription = (html: string): string => {
+  const paragraphMatches = html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi);
+
+  for (const match of paragraphMatches) {
+    const rawParagraph = match[1];
+    if (!rawParagraph) {
+      continue;
+    }
+
+    const text = stripHtml(rawParagraph);
+    if (text.length < 20) {
+      continue;
+    }
+
+    const normalized = text.toLowerCase();
+    if (
+      normalized.startsWith("jump to navigation") ||
+      normalized.startsWith("jump to search") ||
+      normalized.startsWith("from multi theft auto")
+    ) {
+      continue;
+    }
+
+    return text.substring(0, 1000);
+  }
+
+  return "";
+};
+
 export const stripHtml = (html: string): string => {
   return normalizeWhitespace(
     decodeHtmlEntities(
@@ -137,27 +205,14 @@ export const parseDocumentation = (
   };
 
   // Extract description
-  const descMatches = html.match(/<p>(.*?)<\/p>/is);
-  if (descMatches && descMatches[1]) {
-    doc.description = stripHtml(descMatches[1]).substring(0, 1000);
-  }
+  doc.description = extractDescription(html);
 
   // Check for deprecation notice
-  const deprecationPatterns = [
-    /You should use (?:predefined variable |the )?([\w]+)(?: variable)? instead/i,
-    /(?:deprecated|obsolete|no longer recommended)[^.]*?(?:use|replaced by|instead use) ([\w]+)/i,
-    /predefined variable '?([\w]+)'? is/i,
-  ];
-
-  for (const pattern of deprecationPatterns) {
-    const match = html.match(pattern);
-    if (match) {
-      const replacement = match[1]?.trim();
-      doc.deprecated = replacement
-        ? `Use ${replacement} instead`
-        : "Deprecated";
-      break;
-    }
+  const deprecationReplacement =
+    detectDeprecationReplacement(stripHtml(html)) ??
+    detectDeprecationReplacement(html);
+  if (deprecationReplacement) {
+    doc.deprecated = `Use ${deprecationReplacement} instead`;
   }
 
   // Extract syntax from Syntax section first, fallback to generic pattern
@@ -187,13 +242,36 @@ export const parseDocumentation = (
     paramsMatches.push(stripHtml(optionalMatch[0]));
   }
 
+  // Some pages (especially events) use a generic "Parameters" section
+  const parametersMatch = html.match(
+    /<h[23][^>]*>\s*(?:<[^>]*>)*\s*Parameters[\s\S]*?(?=<h[23]|$)/i,
+  );
+  if (parametersMatch) {
+    paramsMatches.push(stripHtml(parametersMatch[0]));
+  }
+
   // Fallback: try older wiki format
   if (paramsMatches.length === 0) {
-    const oldFormatMatch = html.match(
-      /===?\s*(?:Required|Optional)?\s*[Aa]rguments[\s\S]*?(?=<h[23]|===|$)/i,
+    const legacyRequired = extractLegacySection(
+      html,
+      "Required\\s+Arguments",
+      "Required Arguments",
     );
-    if (oldFormatMatch) {
-      paramsMatches.push(stripHtml(oldFormatMatch[0]));
+    const legacyOptional = extractLegacySection(
+      html,
+      "Optional\\s+Arguments",
+      "Optional Arguments",
+    );
+    const legacyArguments = extractLegacySection(
+      html,
+      "Arguments",
+      "Arguments",
+    );
+
+    for (const section of [legacyRequired, legacyOptional, legacyArguments]) {
+      if (section) {
+        paramsMatches.push(section);
+      }
     }
   }
 
@@ -205,12 +283,8 @@ export const parseDocumentation = (
   );
   if (!returnsMatch) {
     // Fallback to older format
-    const oldReturnsMatch = html.match(
-      /===?\s*Returns[\s\S]*?(?=<h[23]|===|$)/i,
-    );
-    doc.returns = oldReturnsMatch
-      ? stripHtml(oldReturnsMatch[0]).substring(0, 500)
-      : "";
+    const legacyReturns = extractLegacySection(html, "Returns", "Returns");
+    doc.returns = legacyReturns.substring(0, 500);
   } else {
     doc.returns = stripHtml(returnsMatch[0]).substring(0, 500);
   }
