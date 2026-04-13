@@ -1,7 +1,7 @@
 {
   "name": "mtasa-docs-mcp",
   "mcpName": "io.github.Luminaire1337/mtasa-docs-mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MCP server for MTA:SA documentation with intelligent search and caching",
   "type": "module",
   "license": "GPL-3.0",
