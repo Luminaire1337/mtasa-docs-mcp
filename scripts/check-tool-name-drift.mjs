@@ -21,7 +21,7 @@ const legacyNamePatterns = [
 const issues = [];
 
 for (const relativePath of filesToCheck) {
-  const content = await readFile(new URL(`./${relativePath}`, import.meta.url), {
+  const content = await readFile(new URL(`../${relativePath}`, import.meta.url), {
     encoding: "utf8",
   });
 

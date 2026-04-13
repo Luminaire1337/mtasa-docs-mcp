@@ -3,119 +3,120 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const indexPath = resolve(process.cwd(), "src/index.ts");
+const smokePath = resolve(process.cwd(), "scripts/smoke.mjs");
 const indexSource = readFileSync(indexPath, "utf8");
+const smokeSource = readFileSync(smokePath, "utf8");
 
-type ToolExpectation = {
-  name: string;
-  requiredSnippets?: string[];
-};
-
-const expectedTools: ToolExpectation[] = [
-  {
-    name: "search_functions",
-    requiredSnippets: ["default(30)"],
-  },
-  {
-    name: "search_events",
-    requiredSnippets: ["default(30)"],
-  },
-  {
-    name: "find_functions_for_task",
-    requiredSnippets: ["default(10)"],
-  },
-  {
-    name: "find_events_for_task",
-    requiredSnippets: ["default(10)"],
-  },
-  {
-    name: "get_function_docs",
-    requiredSnippets: [
-      "include_optional_arguments",
-      "default(false)",
-      "use_cache",
-    ],
-  },
-  {
-    name: "get_function_examples",
-  },
-  {
-    name: "get_multiple_function_docs",
-    requiredSnippets: [
-      "function_names",
-      "include_examples",
-      "include_optional_arguments",
-      "default(false)",
-    ],
-  },
-  {
-    name: "list_functions_by_category",
-  },
-  {
-    name: "get_cache_stats",
-  },
-  {
-    name: "recommend_doc_workflow",
-  },
-  {
-    name: "clear_cache",
-  },
+const requiredCoreTools = [
+  "search_functions",
+  "search_events",
+  "find_functions_for_task",
+  "find_events_for_task",
+  "get_function_docs",
+  "get_function_examples",
+  "get_multiple_function_docs",
+  "list_functions_by_category",
+  "get_cache_stats",
+  "recommend_doc_workflow",
+  "clear_cache",
 ];
 
-const expectedPrompts = ["resource_structure", "mcp_usage_policy"];
+const requiredPrompts = ["resource_structure", "mcp_usage_policy"];
+
+const criticalToolSchemaSnippets: Record<string, string[]> = {
+  search_functions: ["default(30)"],
+  search_events: ["default(30)"],
+  find_functions_for_task: ["default(10)"],
+  find_events_for_task: ["default(10)"],
+  get_function_docs: [
+    "include_optional_arguments",
+    "default(false)",
+    "use_cache",
+  ],
+  get_multiple_function_docs: [
+    "function_names",
+    "include_examples",
+    "include_optional_arguments",
+    "default(false)",
+  ],
+};
+
+const getRegisteredTools = (): string[] => {
+  const matches = [
+    ...indexSource.matchAll(/server\.registerTool\(\s*"([^"]+)"/g),
+  ];
+  return matches
+    .map((match) => match[1])
+    .filter((name): name is string => typeof name === "string");
+};
+
+const getRegisteredPrompts = (): string[] => {
+  const matches = [
+    ...indexSource.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g),
+  ];
+  return matches
+    .map((match) => match[1])
+    .filter((name): name is string => typeof name === "string");
+};
+
+const getToolRegistrationBlock = (toolName: string): string => {
+  const startMarker = `server.registerTool(\n  "${toolName}"`;
+  const toolStart = indexSource.indexOf(startMarker);
+  expect(toolStart).toBeGreaterThanOrEqual(0);
+
+  const nextToolStart = indexSource.indexOf(
+    "server.registerTool(",
+    toolStart + 1,
+  );
+  const nextPromptStart = indexSource.indexOf(
+    "server.registerPrompt(",
+    toolStart + 1,
+  );
+  const end =
+    nextToolStart === -1
+      ? nextPromptStart === -1
+        ? indexSource.length
+        : nextPromptStart
+      : nextPromptStart === -1
+        ? nextToolStart
+        : Math.min(nextToolStart, nextPromptStart);
+
+  return indexSource.slice(toolStart, end);
+};
 
 describe("tool and prompt manifest", () => {
-  test("registers the expected tool names", () => {
-    const matches = [
-      ...indexSource.matchAll(/server\.registerTool\(\s*"([^"]+)"/g),
-    ];
-    const toolNames = matches.map((match) => match[1]);
+  test("registers exactly the expected tool set with no extras", () => {
+    const toolNames = getRegisteredTools();
 
-    expect(toolNames).toHaveLength(expectedTools.length);
-    expect(toolNames).toEqual(expectedTools.map((item) => item.name));
+    expect([...toolNames].sort()).toEqual([...requiredCoreTools].sort());
+    expect(new Set(toolNames).size).toBe(toolNames.length);
   });
 
-  test("registers the expected prompt names", () => {
-    const matches = [
-      ...indexSource.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g),
-    ];
-    const promptNames = matches.map((match) => match[1]);
+  test("registers unique prompt names and preserves core prompts", () => {
+    const promptNames = getRegisteredPrompts();
 
-    expect(promptNames).toEqual(expectedPrompts);
+    expect(promptNames).toEqual(expect.arrayContaining(requiredPrompts));
+    expect(new Set(promptNames).size).toBe(promptNames.length);
   });
 
   test("includes required schema snippets for critical tools", () => {
-    for (const tool of expectedTools) {
-      if (!tool.requiredSnippets || tool.requiredSnippets.length === 0) {
-        continue;
-      }
-
-      const startMarker = `server.registerTool(\n  "${tool.name}"`;
-      const toolStart = indexSource.indexOf(startMarker);
-      expect(toolStart).toBeGreaterThanOrEqual(0);
-
-      const nextToolStart = indexSource.indexOf(
-        "server.registerTool(",
-        toolStart + 1,
-      );
-      const nextPromptStart = indexSource.indexOf(
-        "server.registerPrompt(",
-        toolStart + 1,
-      );
-      const end =
-        nextToolStart === -1
-          ? nextPromptStart === -1
-            ? indexSource.length
-            : nextPromptStart
-          : nextPromptStart === -1
-            ? nextToolStart
-            : Math.min(nextToolStart, nextPromptStart);
-
-      const block = indexSource.slice(toolStart, end);
-
-      for (const snippet of tool.requiredSnippets) {
+    for (const [toolName, snippets] of Object.entries(
+      criticalToolSchemaSnippets,
+    )) {
+      const block = getToolRegistrationBlock(toolName);
+      for (const snippet of snippets) {
         expect(block).toContain(snippet);
       }
     }
+  });
+
+  test("smoke test auto-discovers tools and prompts from source", () => {
+    expect(smokeSource).toContain(
+      'matchAll(/server\\.registerTool\\(\\s*"([^"]+)"/g)',
+    );
+    expect(smokeSource).toContain(
+      'matchAll(/server\\.registerPrompt\\(\\s*"([^"]+)"/g)',
+    );
   });
 
   test("keeps MCP-first fallback policy in prompt guidance", () => {

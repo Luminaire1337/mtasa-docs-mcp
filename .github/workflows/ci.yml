@@ -18,9 +18,15 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify (Checks, Tests, Build, Smoke)
-    runs-on: ubuntu-latest
+    name: Verify (Checks, Tests, Build, Smoke) - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
 
     steps:
       - name: Checkout repository

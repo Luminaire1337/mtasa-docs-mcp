@@ -140,3 +140,5 @@ vite.config.ts.timestamp-*
 
 # Project specific ignores
 build/
+release-notes.md
+package-lock.json
