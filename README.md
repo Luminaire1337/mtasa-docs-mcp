@@ -223,6 +223,7 @@ On release tag pushes (`v*.*.*`), the release workflow:
 - checks whether the version already exists on npm
 - runs `pnpm verify:full`
 - publishes to npm with provenance using trusted publishing (OIDC)
+- publishes `server.json` to the MCP Registry using GitHub OIDC
 - creates/updates the GitHub Release from `CHANGELOG.md`
 - verifies installability of the published package and runs smoke tests
 
@@ -234,6 +235,15 @@ workflow:
 - Repository: `Luminaire1337/mtasa-docs-mcp`
 - Workflow file: `.github/workflows/release.yml`
 - Environment (if used): match your GitHub Actions configuration
+
+### Maintainer setup for MCP Registry publishing
+
+- Ensure `server.json` exists at repository root and uses this package name:
+  `mtasa-docs-mcp`
+- Configure MCP Registry ownership for
+  `io.github.Luminaire1337/mtasa-docs-mcp`
+- Release workflow uses `mcp-publisher login github-oidc` and publishes only
+  when the npm publish gate passes
 
 ## CI Workflows
 

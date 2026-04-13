@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "title": "MTA:SA Documentation MCP Server",
+  "name": "io.github.Luminaire1337/mtasa-docs-mcp",
+  "description": "MCP server for MTA:SA documentation with intelligent search and caching",
+  "websiteUrl": "https://github.com/Luminaire1337/mtasa-docs-mcp#readme",
+  "repository": {
+    "url": "https://github.com/Luminaire1337/mtasa-docs-mcp",
+    "source": "github"
+  },
+  "version": "1.0.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mtasa-docs-mcp",
+      "version": "1.0.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

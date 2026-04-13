@@ -122,3 +122,33 @@ jobs:
           PACKAGE_NAME="${{ steps.metadata.outputs.package_name }}"
           ENTRY_PATH="${{ steps.install-published.outputs.test_dir }}/node_modules/${PACKAGE_NAME}/build/index.js"
           node scripts/smoke.mjs --runtime=node "$ENTRY_PATH"
+
+      - name: Install MCP publisher CLI
+        if: steps.npm-check.outputs.should_publish == 'true'
+        run: |
+          OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          ARCH="$(uname -m)"
+          case "$ARCH" in
+            x86_64) ARCH="amd64" ;;
+            aarch64|arm64) ARCH="arm64" ;;
+          esac
+
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${OS}_${ARCH}.tar.gz" \
+            | tar -xz mcp-publisher
+          chmod +x ./mcp-publisher
+
+      - name: Sync server manifest version
+        if: steps.npm-check.outputs.should_publish == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_PACKAGE_NAME: ${{ steps.metadata.outputs.package_name }}
+        run: |
+          node -e "const fs=require('node:fs');const manifestPath='server.json';const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));const version=process.env.RELEASE_VERSION;const packageName=process.env.RELEASE_PACKAGE_NAME;manifest.version=version;if(Array.isArray(manifest.packages)){manifest.packages=manifest.packages.map((pkg)=>pkg&&pkg.registryType==='npm'&&pkg.identifier===packageName?{...pkg,version}:pkg);}fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\\n');"
+
+      - name: Authenticate to MCP Registry
+        if: steps.npm-check.outputs.should_publish == 'true'
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to MCP Registry
+        if: steps.npm-check.outputs.should_publish == 'true'
+        run: ./mcp-publisher publish ./server.json
