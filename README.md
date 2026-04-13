@@ -245,6 +245,7 @@ workflow:
 - `AGENTS.md` - architecture and contributor guidance
 - `FEATURES.md` - roadmap and ideas
 - `CHANGELOG.md` - release history
+- `SECURITY.md` - vulnerability disclosure policy
 
 ## License
 
