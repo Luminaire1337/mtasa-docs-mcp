@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -5,6 +6,10 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const projectRoot = resolve(__dirname, "..");
+const serverEntryPath = process.argv[2]
+  ? resolve(process.cwd(), process.argv[2])
+  : resolve(projectRoot, "build/index.js");
 
 const client = new Client(
   {
@@ -18,9 +23,25 @@ const client = new Client(
 
 const transport = new StdioClientTransport({
   command: process.execPath,
-  args: [resolve(__dirname, "build/index.js")],
-  cwd: __dirname,
+  args: [serverEntryPath],
+  cwd: projectRoot,
 });
+
+const indexSource = await readFile(resolve(projectRoot, "src/index.ts"), "utf8");
+const requiredTools = [
+  ...new Set(
+    [...indexSource.matchAll(/server\.registerTool\(\s*"([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+  ),
+];
+const requiredPrompts = [
+  ...new Set(
+    [...indexSource.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+  ),
+];
 
 const getTextContent = (result) => {
   const chunks = Array.isArray(result?.content) ? result.content : [];
@@ -40,19 +61,6 @@ try {
 
   const toolsResponse = await client.listTools();
   const toolNames = new Set((toolsResponse.tools ?? []).map((tool) => tool.name));
-  const requiredTools = [
-    "search_functions",
-    "search_events",
-    "find_functions_for_task",
-    "find_events_for_task",
-    "get_function_docs",
-    "get_function_examples",
-    "get_multiple_function_docs",
-    "list_functions_by_category",
-    "get_cache_stats",
-    "recommend_doc_workflow",
-    "clear_cache",
-  ];
 
   for (const toolName of requiredTools) {
     if (!toolNames.has(toolName)) {
@@ -64,7 +72,7 @@ try {
   const promptNames = new Set(
     (promptsResponse.prompts ?? []).map((prompt) => prompt.name),
   );
-  for (const promptName of ["resource_structure", "mcp_usage_policy"]) {
+  for (const promptName of requiredPrompts) {
     if (!promptNames.has(promptName)) {
       throw new Error(`Missing required prompt in listPrompts: ${promptName}`);
     }

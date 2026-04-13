@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-const packageJsonText = await readFile(new URL("./package.json", import.meta.url), {
+const packageJsonText = await readFile(new URL("../package.json", import.meta.url), {
   encoding: "utf8",
 });
 const packageJson = JSON.parse(packageJsonText);
@@ -10,7 +10,7 @@ if (typeof packageVersion !== "string" || packageVersion.trim().length === 0) {
   throw new Error("Could not read package.json version.");
 }
 
-const indexSource = await readFile(new URL("./src/index.ts", import.meta.url), {
+const indexSource = await readFile(new URL("../src/index.ts", import.meta.url), {
   encoding: "utf8",
 });
 

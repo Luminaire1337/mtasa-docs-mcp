@@ -1,94 +1,180 @@
 # MTA:SA Documentation MCP Server
 
-> **Work in Progress**: This project is currently under active development and not ready for production use. Features may be incomplete or subject to change.
+An MCP (Model Context Protocol) server that gives AI assistants reliable,
+structured access to Multi Theft Auto: San Andreas documentation.
 
-A Model Context Protocol (MCP) server providing AI assistants with access to Multi Theft Auto: San Andreas documentation through intelligent search and vector similarity.
+It combines fast keyword search, semantic matching, and SQLite-backed caching so
+agents can discover the right APIs and fetch authoritative docs without manual
+wiki scraping.
 
-**Note**: Not yet available on npm registry.
+## Highlights
 
-## Quick Start
+- 11 MCP tools for discovery, docs retrieval, cache operations, and workflow
+  guidance
+- Event-first discovery (`search_events`, `find_events_for_task`)
+- Semantic task matching with SQLite vector search
+- Smart keyword expansion (for example, `database` -> `db*` APIs)
+- Built-in deprecation detection and warnings
+- Local SQLite cache with configurable lifetime
+- CI verification gates, smoke tests, and release automation
+
+## Installation
+
+Requirements:
+
+- Node.js 24+
+- pnpm 10+ (for local development)
+
+Launcher note:
+
+- You can launch/install via `npx`, `pnpx`, `bunx`, or yarn dlx-style flows,
+  but this package still runs on the Node.js runtime.
+
+### From npm (recommended)
 
 ```bash
-# Clone the repository
-git clone https://github.com/Luminaire1337/mtasa-docs-mcp.git
-cd mtasa-docs-mcp
-
-# Install dependencies
-pnpm install
-
-# If optional native dependencies were skipped by your environment,
-# reinstall to fetch sqlite-vector platform binaries:
-pnpm install --force
-
-# If native bindings were skipped, rebuild better-sqlite3:
-pnpm rebuild better-sqlite3 --config.ignore-scripts=false
-
-# Build the project
-pnpm build
-
-# Test with MCP inspector
-pnpm inspector
-
-# Run automated test suite
-pnpm test
+npm install -g mtasa-docs-mcp
 ```
 
-## What It Does
+or:
 
-This MCP server gives AI assistants access to MTA:SA function documentation with:
+```bash
+pnpm add -g mtasa-docs-mcp
+```
 
-- Vector similarity search for finding relevant functions
-- Event-first discovery tools for event handler workflows
-- Smart keyword expansion (e.g., "database" → finds `dbQuery`, `dbPoll`)
-- Deprecation warnings for outdated functions
-- SQLite caching for fast repeated access
-- MCP-first workflow guidance prompt/tool to reduce manual wiki fetching
+### From source
 
-## Tools
+```bash
+git clone https://github.com/Luminaire1337/mtasa-docs-mcp.git
+cd mtasa-docs-mcp
+pnpm install
+pnpm build
+```
 
-- `search_functions` - Search functions/events by name and side
-- `search_events` - Search only events (client/server)
-- `find_functions_for_task` - Semantic task-to-function/event matching
-- `find_events_for_task` - Semantic task-to-event matching
-- `get_function_docs` - Fetch docs for exactly one function/event
-- `get_multiple_function_docs` - Batch docs retrieval for multiple names
-- `get_function_examples` - Extract examples only
-- `list_functions_by_category` - Browse entries by category
-- `get_cache_stats` - Cache stats
-- `recommend_doc_workflow` - MCP-first call-plan helper
-- `clear_cache` - Clear one or all cached docs
+If your environment skips optional native dependencies, run:
 
-Notes:
+```bash
+pnpm install --force
+pnpm rebuild better-sqlite3 --config.ignore-scripts=false
+```
 
-- Prefer `get_multiple_function_docs` for multi-name lookups instead of repeated single-doc calls.
-- Optional arguments are hidden by default in docs responses; set `include_optional_arguments` to `true` when needed.
+## MCP Configuration
 
-## Documentation
+### Option 1: Run installed binary
 
-- **[AGENTS.md](AGENTS.md)** - Complete technical documentation for developers
-- **[FEATURES.md](FEATURES.md)** - Planned features and roadmap
+```json
+{
+  "mcpServers": {
+    "mtasa-docs": {
+      "command": "mtasa-docs-mcp"
+    }
+  }
+}
+```
 
-## Testing
+### Option 2: Run with npx
 
-- `pnpm test` - Run unit tests with Vitest
-- `pnpm test:watch` - Run tests in watch mode
-- `pnpm test:coverage` - Run tests with coverage report
-- `pnpm test:live` - Run live integration tests against MTA wiki pages
-- `pnpm check:versions` - Ensure package/server versions match
-- `pnpm check:tool-names` - Ensure legacy tool/prompt names are not reintroduced
-- `pnpm smoke` - Build and run MCP client smoke checks
-- `pnpm verify` - Run version checks, drift checks, tests, and smoke in one command
-- `pnpm verify:full` - Run `verify` plus live wiki integration tests
+```json
+{
+  "mcpServers": {
+    "mtasa-docs": {
+      "command": "npx",
+      "args": ["-y", "mtasa-docs-mcp"]
+    }
+  }
+}
+```
 
-## CI
+### Option 3: Run local build
 
-- Pull requests and pushes to `master` run `.github/workflows/ci.yml` (`pnpm verify`).
-- Live wiki checks run `.github/workflows/live-tests.yml` (`pnpm test:live`) only when:
-  - manually triggered (`workflow_dispatch`), or
-  - a PR has label `run-live-tests` and includes relevant file changes.
+```json
+{
+  "mcpServers": {
+    "mtasa-docs": {
+      "command": "node",
+      "args": ["/absolute/path/to/mtasa-docs-mcp/build/index.js"]
+    }
+  }
+}
+```
+
+## Available Tools
+
+- `search_functions`
+- `search_events`
+- `find_functions_for_task`
+- `find_events_for_task`
+- `get_function_docs`
+- `get_multiple_function_docs`
+- `get_function_examples`
+- `list_functions_by_category`
+- `get_cache_stats`
+- `recommend_doc_workflow`
+- `clear_cache`
+
+## Development
+
+```bash
+pnpm build
+pnpm test
+pnpm smoke
+pnpm verify
+pnpm verify:full
+```
+
+Useful checks:
+
+- `pnpm check:versions` - keep `package.json` and MCP server version aligned
+- `pnpm check:changelog` - ensure `CHANGELOG.md` has current release heading
+- `pnpm check:tool-names` - prevent legacy tool naming regressions
+
+Scripts are located in `scripts/` (build, smoke, release guards).
+
+## Release Flow
+
+Release automation is handled by `.github/workflows/release.yml`.
+
+1. Bump version in `package.json` and `src/index.ts`.
+2. Move release notes from `Unreleased` into a versioned section in
+   `CHANGELOG.md` using `## [x.y.z] - YYYY-MM-DD`.
+3. Merge to `master`.
+
+Branching policy:
+
+- Before `v1.0.0`: direct pushes to `master` are allowed.
+- Starting at `v1.0.0`: use PR-based development for all changes to `master`.
+
+On `master`, the release workflow:
+
+- checks whether the version already exists on npm
+- runs `pnpm verify:full`
+- publishes to npm with provenance using trusted publishing (OIDC)
+- creates/updates the GitHub Release from `CHANGELOG.md`
+- verifies installability of the published package and runs smoke tests
+
+### Maintainer setup for npm trusted publishing
+
+In npm package settings, configure a trusted publisher for this repository and
+workflow:
+
+- Repository: `Luminaire1337/mtasa-docs-mcp`
+- Workflow file: `.github/workflows/release.yml`
+- Environment (if used): match your GitHub Actions configuration
+
+## CI Workflows
+
+- `.github/workflows/ci.yml` - verification on push/PR to `master` (Ubuntu +
+  macOS)
+- `.github/workflows/live-tests.yml` - optional live wiki integration tests
+- `.github/workflows/release.yml` - automated publish and GitHub release on
+  `master`
+
+## Project Docs
+
+- `AGENTS.md` - architecture and contributor guidance
+- `FEATURES.md` - roadmap and ideas
+- `CHANGELOG.md` - release history
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
-
-See [LICENSE](LICENSE) file for details.
+GNU General Public License v3.0. See `LICENSE`.

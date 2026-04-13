@@ -33,12 +33,21 @@ An MCP (Model Context Protocol) server that provides AI assistants with access t
 - **Language**: TypeScript
 - **Database**: better-sqlite3 + @sqliteai/sqlite-vector
 - **Bundler**: esbuild
-- **Package Manager**: pnpm (works with npm/yarn/bun; relies on `packageManager` and optional dependencies)
+- **Package Manager**: pnpm (works with npm/yarn/bun launchers; runtime is still Node.js)
 - **MCP SDK**: @modelcontextprotocol/sdk v1.29.0
 
 ### Project Structure
 
 ```
+scripts/
+├── build.mjs                     # Build bundle script
+├── smoke.mjs                     # MCP smoke verification script
+├── check-version-consistency.mjs # package/server version guard
+├── check-changelog-consistency.mjs
+├── check-tool-name-drift.mjs
+├── check-release-tag.mjs
+└── extract-changelog-entry.mjs
+
 src/
 ├── index.ts              # MCP server entry point, tool registration
 ├── config/
@@ -99,7 +108,7 @@ db.loadExtension(getExtensionPath());
 **Decision**: Bundle everything into one `build/index.js` file.
 
 ```javascript
-// build.mjs
+// scripts/build.mjs
 esbuild.build({
   entryPoints: ["src/index.ts"],
   bundle: true,
@@ -519,13 +528,33 @@ Functions to test:
 pnpm build
 ```
 
-This runs `build.mjs`:
+This runs `scripts/build.mjs`:
 
 1. TypeScript compilation (type checking)
 2. esbuild bundling (with minification)
 3. Sets executable permissions on `build/index.js`
 
 **Output**: Single `build/index.js` file (~574KB minified)
+
+### Release Automation
+
+The repository includes a release workflow at `.github/workflows/release.yml`.
+
+On pushes to `master`, the workflow:
+
+1. Reads the version from `package.json`
+2. Skips publishing if that version already exists on npm
+3. Runs `pnpm verify:full` (checks + tests + smoke + live tests)
+4. Creates and pushes tag `v<version>` if missing
+5. Publishes to npm using trusted publishing with provenance
+6. Creates/updates a GitHub Release using the version section from `CHANGELOG.md`
+7. Installs the just-published package from npm and runs smoke checks
+
+Release-related commands:
+
+- `pnpm check:changelog` - Ensure `CHANGELOG.md` has `[Unreleased]` and current version heading
+- `pnpm release:check-tag` - Ensure release tag matches `package.json` version
+- `pnpm release:notes` - Extract current version notes from `CHANGELOG.md` into `release-notes.md`
 
 ### Optional Dependency Resolution
 
@@ -586,6 +615,12 @@ For substantial features, refactors, or multi-file updates, follow a full develo
 
 This keeps progress shippable and avoids leaving large, uncommitted updates in the working tree.
 
+### Branching & Merge Policy
+
+- Before `v1.0.0`, direct pushes to `master` are acceptable during rapid iteration.
+- Starting at `v1.0.0`, switch to PR-based development for all changes targeting `master`.
+- For post-`v1.0.0` work, require CI to pass before merge.
+
 ### Release Compatibility Policy
 
 - Before `v1.0.0`, breaking tool/prompt renames are allowed while APIs stabilize.
@@ -638,6 +673,7 @@ server.registerTool(
 - [ ] Returns expected format
 - [ ] Handles edge cases (empty results, errors)
 - [ ] Parameter validation works
+- [ ] If tools/prompts changed, smoke and manifest tests were updated (or validated as auto-derived)
 
 ### Automated Test Commands
 
@@ -646,6 +682,7 @@ server.registerTool(
 - `pnpm test:coverage` - Generate coverage report
 - `pnpm test:live` - Run live parser integration tests against wiki pages
 - `pnpm check:versions` - Ensure `package.json` and MCP server versions match
+- `pnpm check:changelog` - Ensure changelog has required release sections
 - `pnpm check:tool-names` - Ensure legacy `mtasa_` tool/prompt names are not reintroduced
 - `pnpm smoke` - Build and run MCP client smoke checks against the built server
 - `pnpm verify` - Run version checks, drift checks, tests, and smoke gate
@@ -653,8 +690,9 @@ server.registerTool(
 
 ### CI Workflows
 
-- `.github/workflows/ci.yml` - Runs on push/PR to `master`, executes `pnpm verify`
+- `.github/workflows/ci.yml` - Runs on push/PR to `master`, executes `pnpm verify` on Ubuntu and macOS
 - `.github/workflows/live-tests.yml` - Runs on manual dispatch, or on labeled PRs (`run-live-tests`) with relevant parser/live-test changes, executes `pnpm test:live`
+- `.github/workflows/release.yml` - Runs on push to `master`, publishes new npm versions, creates GitHub Releases, and verifies published package install/smoke
 
 ---
 
