@@ -121,4 +121,4 @@ jobs:
         run: |
           PACKAGE_NAME="${{ steps.metadata.outputs.package_name }}"
           ENTRY_PATH="${{ steps.install-published.outputs.test_dir }}/node_modules/${PACKAGE_NAME}/build/index.js"
-          node scripts/smoke.mjs "$ENTRY_PATH"
+          node scripts/smoke.mjs --runtime=node "$ENTRY_PATH"

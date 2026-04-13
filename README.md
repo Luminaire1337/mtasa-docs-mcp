@@ -23,12 +23,13 @@ wiki scraping.
 Requirements:
 
 - Node.js 24+
+- Bun 1.3+ (optional runtime)
 - pnpm 10+ (for local development)
 
 Launcher note:
 
-- You can launch/install via `npx`, `pnpx`, `bunx`, or yarn dlx-style flows,
-  but this package still runs on the Node.js runtime.
+- You can launch/install via `npx`, `pnpx`, `bunx`, or yarn dlx-style flows.
+- Runtime support is cross-runtime: Node.js (via `node:sqlite`) and Bun (via `bun:sqlite`).
 
 ### From npm (recommended)
 
@@ -59,7 +60,6 @@ If your environment skips optional native dependencies, run:
 
 ```bash
 pnpm install --force
-pnpm rebuild better-sqlite3 --config.ignore-scripts=false
 ```
 
 ## MCP Client Setup
@@ -187,7 +187,9 @@ If `mtasa-docs-mcp` is already published, replace the command with:
 ```bash
 pnpm build
 pnpm test
+pnpm test:runtime
 pnpm smoke
+pnpm smoke:cross-runtime
 pnpm verify
 pnpm verify:full
 ```
@@ -197,6 +199,8 @@ Useful checks:
 - `pnpm check:versions` - keep `package.json` and MCP server version aligned
 - `pnpm check:changelog` - ensure `CHANGELOG.md` has current release heading
 - `pnpm check:tool-names` - prevent legacy tool naming regressions
+- `pnpm test:runtime` - run integration runtime tests for Node and Bun smoke paths
+- `pnpm smoke:cross-runtime` - run smoke checks against both Node and Bun runtimes
 
 Scripts are located in `scripts/` (build, smoke, release guards).
 

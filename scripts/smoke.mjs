@@ -7,9 +7,40 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = resolve(__dirname, "..");
-const serverEntryPath = process.argv[2]
-  ? resolve(process.cwd(), process.argv[2])
+
+const cliArgs = process.argv.slice(2);
+const positionalArgs = [];
+let runtime = "node";
+
+for (let index = 0; index < cliArgs.length; index++) {
+  const arg = cliArgs[index];
+  if (arg === "--runtime") {
+    runtime = cliArgs[index + 1] ?? runtime;
+    index += 1;
+    continue;
+  }
+
+  if (arg.startsWith("--runtime=")) {
+    runtime = arg.split("=")[1] ?? runtime;
+    continue;
+  }
+
+  positionalArgs.push(arg);
+}
+
+const normalizedRuntime = runtime.toLowerCase();
+if (normalizedRuntime !== "node" && normalizedRuntime !== "bun") {
+  throw new Error(
+    `Unsupported runtime '${runtime}'. Use --runtime=node or --runtime=bun.`,
+  );
+}
+
+const serverEntryPath = positionalArgs[0]
+  ? resolve(process.cwd(), positionalArgs[0])
   : resolve(projectRoot, "build/index.js");
+
+const transportCommand =
+  normalizedRuntime === "bun" ? "bun" : process.execPath;
 
 const client = new Client(
   {
@@ -22,7 +53,7 @@ const client = new Client(
 );
 
 const transport = new StdioClientTransport({
-  command: process.execPath,
+  command: transportCommand,
   args: [serverEntryPath],
   cwd: projectRoot,
 });

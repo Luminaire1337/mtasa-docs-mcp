@@ -1,5 +1,6 @@
-import type { Statement } from "better-sqlite3";
-import { db } from "./connection.js";
+import { db, isVectorExtensionLoaded } from "./connection.js";
+import type { StatementLike } from "./connection.js";
+import { bufferToVector } from "../utils/embeddings.js";
 import type {
   MtasaFunction,
   CachedDoc,
@@ -9,6 +10,11 @@ import type {
 type VectorSearchRow = {
   function_name: string;
   distance: number;
+};
+
+type DocEmbeddingRow = {
+  function_name: string;
+  embedding: unknown;
 };
 
 const clampLimit = (limit: number, fallback: number, max: number): number => {
@@ -21,17 +27,18 @@ const clampLimit = (limit: number, fallback: number, max: number): number => {
 };
 
 type Queries = {
-  insertMetadata: () => Statement;
-  getMetadata: () => Statement;
-  getMetadataInsensitive: () => Statement;
-  searchMetadata: () => Statement;
-  getByCategory: () => Statement;
-  insertDoc: () => Statement;
-  getDoc: () => Statement;
-  searchDocsByVector: () => Statement;
-  clearDoc: () => Statement;
-  clearAllDocs: () => Statement;
-  countDocs: () => Statement;
+  insertMetadata: () => StatementLike;
+  getMetadata: () => StatementLike;
+  getMetadataInsensitive: () => StatementLike;
+  searchMetadata: () => StatementLike;
+  getByCategory: () => StatementLike;
+  insertDoc: () => StatementLike;
+  getDoc: () => StatementLike;
+  searchDocsByVector: () => StatementLike;
+  listDocEmbeddings: () => StatementLike;
+  clearDoc: () => StatementLike;
+  clearAllDocs: () => StatementLike;
+  countDocs: () => StatementLike;
 };
 
 export const queries: Queries = {
@@ -85,6 +92,13 @@ export const queries: Queries = {
     WHERE embedding IS NOT NULL
     ORDER BY distance
     LIMIT ?
+  `),
+
+  listDocEmbeddings: () =>
+    db.prepare(`
+    SELECT function_name, embedding
+    FROM function_docs
+    WHERE embedding IS NOT NULL
   `),
 
   clearDoc: () =>
@@ -157,6 +171,79 @@ export const searchByVector = (
   limit: number = 10,
 ): VectorSearchRow[] => {
   const safeLimit = clampLimit(limit, 10, 200);
+
+  if (!isVectorExtensionLoaded) {
+    return searchByVectorInJavaScript(queryVector, safeLimit);
+  }
+
   const rows = queries.searchDocsByVector().all(queryVector, safeLimit);
   return rows as VectorSearchRow[];
+};
+
+const toBuffer = (value: unknown): Buffer | null => {
+  if (Buffer.isBuffer(value)) {
+    return value;
+  }
+
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+  }
+
+  if (value instanceof ArrayBuffer) {
+    return Buffer.from(value);
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+  }
+
+  return null;
+};
+
+const calculateL2Distance = (
+  left: Float32Array,
+  right: Float32Array,
+): number => {
+  if (left.length !== right.length) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  let sum = 0;
+  for (let index = 0; index < left.length; index++) {
+    const delta = (left[index] ?? 0) - (right[index] ?? 0);
+    sum += delta * delta;
+  }
+
+  return Math.sqrt(sum);
+};
+
+const searchByVectorInJavaScript = (
+  queryVector: Buffer,
+  limit: number,
+): VectorSearchRow[] => {
+  const query = bufferToVector(queryVector);
+  const rows = queries.listDocEmbeddings().all() as DocEmbeddingRow[];
+  const scored: VectorSearchRow[] = [];
+
+  for (const row of rows) {
+    const embeddingBuffer = toBuffer(row.embedding);
+    if (!embeddingBuffer) {
+      continue;
+    }
+
+    const embedding = bufferToVector(embeddingBuffer);
+    const distance = calculateL2Distance(query, embedding);
+    if (!Number.isFinite(distance)) {
+      continue;
+    }
+
+    scored.push({
+      function_name: row.function_name,
+      distance,
+    });
+  }
+
+  return scored
+    .sort((left, right) => left.distance - right.distance)
+    .slice(0, limit);
 };
