@@ -44,13 +44,13 @@ jobs:
       - name: Resolve package metadata
         id: metadata
         run: |
-          PACKAGE_NAME="$(node -p \"JSON.parse(require('node:fs').readFileSync('package.json','utf8')).name\")"
+          PACKAGE_NAME="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json','utf8')).name")"
           echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Resolve package version
         id: version
         run: |
-          VERSION="$(node -p \"JSON.parse(require('node:fs').readFileSync('package.json','utf8')).version\")"
+          VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json','utf8')).version")"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
