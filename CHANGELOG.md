@@ -7,7 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
-- No changes yet.
+### Changed
+
+- Isolated npm install execution during published-package smoke checks to avoid cross-environment interference in release verification.
+- Migrated SQLite runtime integration to native adapters: `node:sqlite` on Node.js and `bun:sqlite` on Bun, removing the `better-sqlite3` dependency.
+- Added runtime-aware smoke commands and coverage (`smoke:node`, `smoke:bun`, `smoke:cross-runtime`, and `test:runtime`) with CI workflow updates for cross-runtime validation.
+- Added a JavaScript vector-distance fallback path so Bun runtime keeps semantic search functionality even when native sqlite-vector extension loading is unavailable.
 
 ## [1.0.1] - 2026-04-13
 
