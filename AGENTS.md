@@ -581,9 +581,16 @@ For substantial features, refactors, or multi-file updates, follow a full develo
 2. Implement changes in coherent steps.
 3. Validate with checks (`pnpm exec tsc --noEmit`, `pnpm build`, and relevant tests).
 4. Update documentation when behavior or architecture changes.
-5. After a significant update, create a git commit with a concise message explaining the purpose of the change.
+5. If you edit a file that contains a `Last Updated` field, update it to the current date in the same change.
+6. After a significant update, create a git commit with a concise message explaining the purpose of the change.
 
 This keeps progress shippable and avoids leaving large, uncommitted updates in the working tree.
+
+### Release Compatibility Policy
+
+- Before `v1.0.0`, breaking tool/prompt renames are allowed while APIs stabilize.
+- Starting at `v1.0.0`, avoid breaking tool/prompt names in patch/minor releases.
+- For post-`v1.0.0` renames, add a deprecation window first, document it, then remove in a planned later release.
 
 ### Database Changes
 
@@ -638,7 +645,11 @@ server.registerTool(
 - `pnpm test:watch` - Run tests continuously while developing
 - `pnpm test:coverage` - Generate coverage report
 - `pnpm test:live` - Run live parser integration tests against wiki pages
-- `pnpm verify` - Run `tsc --noEmit`, tests, and build as a release gate
+- `pnpm check:versions` - Ensure `package.json` and MCP server versions match
+- `pnpm check:tool-names` - Ensure legacy `mtasa_` tool/prompt names are not reintroduced
+- `pnpm smoke` - Build and run MCP client smoke checks against the built server
+- `pnpm verify` - Run version checks, drift checks, tests, and smoke gate
+- `pnpm verify:full` - Run full gate (`verify`) plus live integration tests
 
 ### CI Workflows
 
@@ -763,7 +774,7 @@ A: Use `pnpm inspector` - it shows all JSON-RPC messages between client and serv
 
 ---
 
-**Last Updated**: January 14, 2026  
+**Last Updated**: April 13, 2026  
 **Maintainer**: @Luminaire1337  
 **Version**: 0.9.1  
 **Repository**: https://github.com/Luminaire1337/mtasa-docs-mcp  

@@ -74,7 +74,11 @@ Notes:
 - `pnpm test:watch` - Run tests in watch mode
 - `pnpm test:coverage` - Run tests with coverage report
 - `pnpm test:live` - Run live integration tests against MTA wiki pages
-- `pnpm verify` - Run typecheck, tests, and build in one command
+- `pnpm check:versions` - Ensure package/server versions match
+- `pnpm check:tool-names` - Ensure legacy tool/prompt names are not reintroduced
+- `pnpm smoke` - Build and run MCP client smoke checks
+- `pnpm verify` - Run version checks, drift checks, tests, and smoke in one command
+- `pnpm verify:full` - Run `verify` plus live wiki integration tests
 
 ## CI
 

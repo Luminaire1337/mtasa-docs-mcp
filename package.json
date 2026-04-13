@@ -30,11 +30,15 @@
     "prepack": "node build.mjs",
     "build": "node build.mjs",
     "inspector": "pnpx @modelcontextprotocol/inspector node ./build/index.js",
+    "check:versions": "node check-version-consistency.mjs",
+    "check:tool-names": "node check-tool-name-drift.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:live": "vitest run --config vitest.live.config.ts",
-    "verify": "tsc --noEmit && vitest run && node build.mjs"
+    "smoke": "node build.mjs && node smoke.mjs",
+    "verify": "pnpm check:versions && pnpm check:tool-names && tsc --noEmit && vitest run && pnpm smoke",
+    "verify:full": "pnpm verify && pnpm test:live"
   },
   "files": [
     "build"

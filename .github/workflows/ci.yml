@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify (Typecheck, Unit Tests, Build)
+    name: Verify (Checks, Tests, Build, Smoke)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

@@ -34,6 +34,10 @@
 - ✅ Comprehensive HTML parsing from MTA:SA Wiki
 - ✅ Extracts: description, syntax, parameters, returns, examples, related functions
 - ✅ Optional arguments can be hidden in docs responses by default (`include_optional_arguments=false`)
+- ✅ Version consistency guard between `package.json` and server metadata (`check:versions`)
+- ✅ Tool-name drift guard to prevent legacy naming regressions (`check:tool-names`)
+- ✅ MCP client smoke checks for core tool/prompt availability and responses (`smoke`)
+- ✅ Full verification gate that includes live integration tests (`verify:full`)
 
 ---
 
@@ -260,6 +264,6 @@ Add your ideas as GitHub issues or discussions!
 
 ---
 
-**Last Updated**: January 14, 2026
-**Maintainer**: @lumi
+**Last Updated**: April 13, 2026
+**Maintainer**: @Luminaire1337
 **MTA:SA Version**: 1.6+
