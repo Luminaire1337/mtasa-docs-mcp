@@ -105,10 +105,20 @@ jobs:
 
       - name: Install published package
         if: steps.npm-check.outputs.should_publish == 'true'
-        run: npm install --no-save "${{ steps.metadata.outputs.package_name }}@${{ steps.metadata.outputs.version }}"
+        id: install-published
+        run: |
+          TEST_DIR="$(mktemp -d)"
+          PACKAGE_NAME="${{ steps.metadata.outputs.package_name }}"
+          VERSION="${{ steps.metadata.outputs.version }}"
+
+          npm init -y --prefix "$TEST_DIR"
+          npm install --prefix "$TEST_DIR" --no-save "${PACKAGE_NAME}@${VERSION}"
+
+          echo "test_dir=$TEST_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Smoke test published package
         if: steps.npm-check.outputs.should_publish == 'true'
-        env:
-          PACKAGE_NAME: ${{ steps.metadata.outputs.package_name }}
-        run: node scripts/smoke.mjs "./node_modules/${PACKAGE_NAME}/build/index.js"
+        run: |
+          PACKAGE_NAME="${{ steps.metadata.outputs.package_name }}"
+          ENTRY_PATH="${{ steps.install-published.outputs.test_dir }}/node_modules/${PACKAGE_NAME}/build/index.js"
+          node scripts/smoke.mjs "$ENTRY_PATH"
