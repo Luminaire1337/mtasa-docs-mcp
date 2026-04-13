@@ -28,7 +28,7 @@ import type { MtasaFunction } from "./types/interfaces.js";
 const server = new McpServer(
   {
     name: "mtasa-docs",
-    version: "1.0.1",
+    version: "1.0.2",
   },
   {
     capabilities: {
