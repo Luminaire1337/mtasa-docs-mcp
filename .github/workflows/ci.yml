@@ -7,6 +7,12 @@ on:
   pull_request:
     branches:
       - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - labeled
   workflow_dispatch:
 
 permissions:
@@ -46,3 +52,28 @@ jobs:
 
       - name: Run verification pipeline
         run: pnpm verify
+
+  live-tests:
+    name: Live Integration Tests
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-live-tests')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run live parser tests
+        run: pnpm test:live

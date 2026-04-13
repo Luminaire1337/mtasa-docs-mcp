@@ -546,7 +546,7 @@ On pushes to `v*.*.*` tags, the workflow:
 2. Skips publishing if that version already exists on npm
 3. Runs `pnpm verify:full` (checks + tests + smoke + live tests)
 4. Validates the pushed tag matches `package.json` version
-5. Publishes to npm using trusted publishing with provenance
+5. Publishes to npm using trusted publishing with provenance (`--no-git-checks` for tag workflow detached HEAD)
 6. Creates/updates a GitHub Release using the version section from `CHANGELOG.md`
 7. Installs the just-published package from npm and runs smoke checks
 
@@ -690,9 +690,8 @@ server.registerTool(
 
 ### CI Workflows
 
-- `.github/workflows/ci.yml` - Runs on push/PR to `master`, executes `pnpm verify` on Ubuntu and macOS
-- `.github/workflows/live-tests.yml` - Runs on manual dispatch, or on labeled PRs (`run-live-tests`) with relevant parser/live-test changes, executes `pnpm test:live`
-- `.github/workflows/release.yml` - Runs on `v*.*.*` tag pushes, publishes new npm versions, creates GitHub Releases, and verifies published package install/smoke
+- `.github/workflows/ci.yml` - Runs on push/PR to `master`, executes `pnpm verify` on Ubuntu and macOS, and runs `pnpm test:live` on labeled PRs (`run-live-tests`) or manual dispatch
+- `.github/workflows/release.yml` - Runs on `v*.*.*` tag pushes, validates release version/tag, publishes new npm versions, creates GitHub Releases, and verifies published package install/smoke
 
 ---
 

@@ -235,10 +235,9 @@ workflow:
 ## CI Workflows
 
 - `.github/workflows/ci.yml` - verification on push/PR to `master` (Ubuntu +
-  macOS)
-- `.github/workflows/live-tests.yml` - optional live wiki integration tests
+  macOS) and optional live wiki integration tests on labeled PRs
 - `.github/workflows/release.yml` - automated publish and GitHub release on
-  `master`
+  release tags (`v*.*.*`)
 
 ## Project Docs
 
