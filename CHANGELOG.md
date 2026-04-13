@@ -7,6 +7,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Fixed
+
+- Added required `mcpName` (`io.github.Luminaire1337/mtasa-docs-mcp`) to `package.json` so MCP Registry npm package validation passes during release publishing.
+
 ## [1.0.2] - 2026-04-13
 
 ### Changed
