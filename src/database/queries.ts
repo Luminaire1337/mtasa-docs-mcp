@@ -221,9 +221,54 @@ const searchByVectorInJavaScript = (
   queryVector: Buffer,
   limit: number,
 ): VectorSearchRow[] => {
+  if (limit <= 0) {
+    return [];
+  }
+
   const query = bufferToVector(queryVector);
   const rows = queries.listDocEmbeddings().all() as DocEmbeddingRow[];
-  const scored: VectorSearchRow[] = [];
+
+  // Maintain a bounded max-heap of size `limit` so we never sort the full
+  // dataset: worst-case O(N log K) time and O(K) extra memory.
+  const heap: VectorSearchRow[] = [];
+
+  const heapPush = (item: VectorSearchRow): void => {
+    heap.push(item);
+    // Sift up
+    let i = heap.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if ((heap[parent]?.distance ?? 0) >= (heap[i]?.distance ?? 0)) {
+        break;
+      }
+      // swap
+      [heap[parent], heap[i]] = [heap[i]!, heap[parent]!];
+      i = parent;
+    }
+  };
+
+  const heapReplaceRoot = (item: VectorSearchRow): void => {
+    heap[0] = item;
+    // Sift down
+    let i = 0;
+    const n = heap.length;
+    for (;;) {
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+      let largest = i;
+      if (left < n && (heap[left]?.distance ?? 0) > (heap[largest]?.distance ?? 0)) {
+        largest = left;
+      }
+      if (right < n && (heap[right]?.distance ?? 0) > (heap[largest]?.distance ?? 0)) {
+        largest = right;
+      }
+      if (largest === i) {
+        break;
+      }
+      [heap[i], heap[largest]] = [heap[largest]!, heap[i]!];
+      i = largest;
+    }
+  };
 
   for (const row of rows) {
     const embeddingBuffer = toBuffer(row.embedding);
@@ -237,13 +282,12 @@ const searchByVectorInJavaScript = (
       continue;
     }
 
-    scored.push({
-      function_name: row.function_name,
-      distance,
-    });
+    if (heap.length < limit) {
+      heapPush({ function_name: row.function_name, distance });
+    } else if (distance < heap[0]!.distance) {
+      heapReplaceRoot({ function_name: row.function_name, distance });
+    }
   }
 
-  return scored
-    .sort((left, right) => left.distance - right.distance)
-    .slice(0, limit);
+  return heap.sort((left, right) => left.distance - right.distance);
 };
