@@ -2,9 +2,8 @@ name: Release
 
 on:
   push:
-    branches:
-      - master
-  workflow_dispatch:
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: write
@@ -21,7 +20,7 @@ jobs:
     outputs:
       package_name: ${{ steps.metadata.outputs.package_name }}
       version: ${{ steps.version.outputs.version }}
-      tag: ${{ steps.version.outputs.tag }}
+      tag: ${{ steps.tag.outputs.tag }}
       should_publish: ${{ steps.npm-check.outputs.should_publish }}
 
     steps:
@@ -52,7 +51,14 @@ jobs:
         run: |
           VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json','utf8')).version")"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Validate pushed tag matches package version
+        run: pnpm release:check-tag
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Check npm registry for existing version
         id: npm-check
@@ -125,21 +131,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate release tag matches package version
-        env:
-          GITHUB_REF_NAME: ${{ needs.plan-release.outputs.tag }}
         run: pnpm release:check-tag
-
-      - name: Create and push release tag
-        run: |
-          TAG="${{ needs.plan-release.outputs.tag }}"
-
-          if git ls-remote --tags origin "${TAG}" | grep "refs/tags/${TAG}$" >/dev/null 2>&1; then
-            echo "Tag ${TAG} already exists on origin."
-          else
-            git tag "${TAG}"
-            git push origin "${TAG}"
-            echo "Created and pushed tag ${TAG}."
-          fi
 
       - name: Publish package to npm (trusted publishing)
         run: pnpm publish --access public --provenance

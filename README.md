@@ -208,14 +208,14 @@ Release automation is handled by `.github/workflows/release.yml`.
 1. Bump version in `package.json` and `src/index.ts`.
 2. Move release notes from `Unreleased` into a versioned section in
    `CHANGELOG.md` using `## [x.y.z] - YYYY-MM-DD`.
-3. Merge to `master`.
+3. Create and push a release tag: `git tag v<version> && git push origin v<version>`.
 
 Branching policy:
 
 - Before `v1.0.0`: direct pushes to `master` are allowed.
 - Starting at `v1.0.0`: use PR-based development for all changes to `master`.
 
-On `master`, the release workflow:
+On release tag pushes (`v*.*.*`), the release workflow:
 
 - checks whether the version already exists on npm
 - runs `pnpm verify:full`
