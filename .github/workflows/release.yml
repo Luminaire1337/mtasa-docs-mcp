@@ -125,16 +125,34 @@ jobs:
 
       - name: Install MCP publisher CLI
         if: steps.npm-check.outputs.should_publish == 'true'
+        env:
+          MCP_PUBLISHER_VERSION: v1.5.0
+          MCP_PUBLISHER_SHA256_LINUX_AMD64: 79bbb73ba048c5906034f73ef6286d7763bd53cf368ea0b358fc593ed360cbd5
+          MCP_PUBLISHER_SHA256_LINUX_ARM64: ba33c656a3fe79e9e01395cc367641cb3847dc9990d299bde3fbcc13c0f830d0
         run: |
           OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
           ARCH="$(uname -m)"
           case "$ARCH" in
-            x86_64) ARCH="amd64" ;;
-            aarch64|arm64) ARCH="arm64" ;;
+            x86_64)
+              ARCH="amd64"
+              EXPECTED_SHA256="${MCP_PUBLISHER_SHA256_LINUX_AMD64}"
+              ;;
+            aarch64|arm64)
+              ARCH="arm64"
+              EXPECTED_SHA256="${MCP_PUBLISHER_SHA256_LINUX_ARM64}"
+              ;;
+            *)
+              echo "Unsupported architecture: $ARCH" >&2
+              exit 1
+              ;;
           esac
 
-          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${OS}_${ARCH}.tar.gz" \
-            | tar -xz mcp-publisher
+          ARCHIVE="mcp-publisher_${OS}_${ARCH}.tar.gz"
+          URL="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/${ARCHIVE}"
+
+          curl -fsSLo "$ARCHIVE" "$URL"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$ARCHIVE" | sha256sum -c -
+          tar -xzf "$ARCHIVE" mcp-publisher
           chmod +x ./mcp-publisher
 
       - name: Sync server manifest version
@@ -142,8 +160,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
           RELEASE_PACKAGE_NAME: ${{ steps.metadata.outputs.package_name }}
-        run: |
-          node -e "const fs=require('node:fs');const manifestPath='server.json';const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));const version=process.env.RELEASE_VERSION;const packageName=process.env.RELEASE_PACKAGE_NAME;manifest.version=version;if(Array.isArray(manifest.packages)){manifest.packages=manifest.packages.map((pkg)=>pkg&&pkg.registryType==='npm'&&pkg.identifier===packageName?{...pkg,version}:pkg);}fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\\n');"
+        run: node scripts/sync-server-manifest.mjs
 
       - name: Authenticate to MCP Registry
         if: steps.npm-check.outputs.should_publish == 'true'
