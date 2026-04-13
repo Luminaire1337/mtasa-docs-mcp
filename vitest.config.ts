@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    exclude: ["tests/live/**/*.test.ts"],
+    exclude: ["tests/live/**/*.test.ts", "tests/runtime-smoke.test.ts"],
     reporters: ["default"],
     coverage: {
       provider: "v8",

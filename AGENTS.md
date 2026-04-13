@@ -31,7 +31,7 @@ An MCP (Model Context Protocol) server that provides AI assistants with access t
 
 - **Runtime**: Node.js v24+
 - **Language**: TypeScript
-- **Database**: better-sqlite3 + @sqliteai/sqlite-vector
+- **Database**: node:sqlite (Node) / bun:sqlite (Bun) + @sqliteai/sqlite-vector
 - **Bundler**: esbuild
 - **Package Manager**: pnpm (works with npm/yarn/bun launchers; runtime is still Node.js)
 - **MCP SDK**: @modelcontextprotocol/sdk v1.29.0
@@ -88,7 +88,7 @@ loadMtasaFunctions().catch((err) => console.error(err));
 
 ### 2. **Vector Extension Loading (CRITICAL)**
 
-**Problem**: `@sqliteai/sqlite-vector` couldn't find platform-specific native module (`.node` file).
+**Problem**: `@sqliteai/sqlite-vector` couldn't find platform-specific native module (`.node`/`.dylib`/`.so` file).
 
 **Solution**:
 
@@ -113,11 +113,11 @@ esbuild.build({
   entryPoints: ["src/index.ts"],
   bundle: true,
   platform: "node",
-  target: "node20",
+  target: "node24",
   format: "esm",
   outfile: "build/index.js",
   minify: true,
-  external: ["better-sqlite3", "@sqliteai/sqlite-vector"],
+  external: ["@sqliteai/sqlite-vector", "bun:sqlite", "node:sqlite"],
 });
 ```
 
@@ -678,6 +678,7 @@ server.registerTool(
 ### Automated Test Commands
 
 - `pnpm test` - Run Vitest suite
+- `pnpm test:runtime` - Run runtime smoke integration tests (Node + Bun)
 - `pnpm test:watch` - Run tests continuously while developing
 - `pnpm test:coverage` - Generate coverage report
 - `pnpm test:live` - Run live parser integration tests against wiki pages
@@ -708,11 +709,11 @@ The MCP SDK has high-level and low-level APIs:
 
 ### 2. **Native Modules in ESM**
 
-Loading native Node.js modules (`.node` files) in ESM requires:
+Loading runtime-provided SQLite modules in ESM requires:
 
 1. Using `getExtensionPath()` from `@sqliteai/sqlite-vector`
 2. Ensuring platform optional dependencies are installed
-3. Keeping the native package external in bundling
+3. Keeping runtime modules external in bundling (`node:sqlite`, `bun:sqlite`)
 
 ### 3. **Vector Embeddings Are Expensive**
 

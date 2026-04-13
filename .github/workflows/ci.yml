@@ -53,6 +53,9 @@ jobs:
       - name: Run verification pipeline
         run: pnpm verify
 
+      - name: Run runtime smoke integration tests
+        run: pnpm test:runtime
+
   live-tests:
     name: Live Integration Tests
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-live-tests')) }}
@@ -77,3 +80,32 @@ jobs:
 
       - name: Run live parser tests
         run: pnpm test:live
+
+  smoke-bun:
+    name: Smoke Test (Bun Runtime)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Bun runtime smoke checks
+        run: pnpm smoke:bun

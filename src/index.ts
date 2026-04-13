@@ -1,7 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { initializeDatabase, closeDatabase } from "./database/connection.js";
+import {
+  initializeDatabase,
+  closeDatabase,
+  isVectorExtensionLoaded,
+} from "./database/connection.js";
 import {
   loadMtasaFunctions,
   fetchFunctionDoc,
@@ -909,9 +913,15 @@ const main = async (): Promise<void> => {
 
   console.error("MTA:SA Documentation MCP Server running");
   console.error(`Hydrated ${hydratedCount} functions from local cache`);
-  console.error(
-    "Using vector similarity search for intelligent function discovery",
-  );
+  if (isVectorExtensionLoaded) {
+    console.error(
+      "Using vector similarity search for intelligent function discovery",
+    );
+  } else {
+    console.error(
+      "Vector extension unavailable; using JS vector distance fallback search",
+    );
+  }
 
   // Load MTA:SA functions from wiki in the background (don't block startup)
   loadMtasaFunctions().catch((err) => {
