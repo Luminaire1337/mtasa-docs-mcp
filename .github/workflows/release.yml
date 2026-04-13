@@ -142,7 +142,7 @@ jobs:
               EXPECTED_SHA256="${MCP_PUBLISHER_SHA256_LINUX_ARM64}"
               ;;
             *)
-              echo "Unsupported architecture: $ARCH" >&2
+              echo "Unsupported Linux architecture: $ARCH" >&2
               exit 1
               ;;
           esac

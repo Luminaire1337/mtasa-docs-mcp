@@ -15,7 +15,7 @@ if (!fs.existsSync(manifestPath)) {
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 manifest.version = version;
 
-let updatedPackageCount = 0;
+let matchedPackageCount = 0;
 if (Array.isArray(manifest.packages)) {
   manifest.packages = manifest.packages.map((pkg) => {
     if (
@@ -23,7 +23,7 @@ if (Array.isArray(manifest.packages)) {
       pkg.registryType === 'npm' &&
       pkg.identifier === packageName
     ) {
-      updatedPackageCount += 1;
+      matchedPackageCount += 1;
       return { ...pkg, version };
     }
 
@@ -31,7 +31,7 @@ if (Array.isArray(manifest.packages)) {
   });
 }
 
-if (updatedPackageCount === 0) {
+if (matchedPackageCount === 0) {
   throw new Error(
     `No npm package entry matched identifier "${packageName}" in ${manifestPath}`
   );
