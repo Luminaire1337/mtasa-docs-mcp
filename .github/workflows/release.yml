@@ -204,4 +204,6 @@ jobs:
         run: npm install --no-save "${{ needs.plan-release.outputs.package_name }}@${{ needs.plan-release.outputs.version }}"
 
       - name: Smoke test published package
-        run: node scripts/smoke.mjs "./node_modules/mtasa-docs-mcp/build/index.js"
+        env:
+          PACKAGE_NAME: ${{ needs.plan-release.outputs.package_name }}
+        run: node scripts/smoke.mjs "./node_modules/${PACKAGE_NAME}/build/index.js"

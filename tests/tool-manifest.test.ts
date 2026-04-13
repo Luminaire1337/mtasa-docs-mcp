@@ -85,10 +85,10 @@ const getToolRegistrationBlock = (toolName: string): string => {
 };
 
 describe("tool and prompt manifest", () => {
-  test("registers unique tool names and preserves core tools", () => {
+  test("registers exactly the expected tool set with no extras", () => {
     const toolNames = getRegisteredTools();
 
-    expect(toolNames).toEqual(expect.arrayContaining(requiredCoreTools));
+    expect([...toolNames].sort()).toEqual([...requiredCoreTools].sort());
     expect(new Set(toolNames).size).toBe(toolNames.length);
   });
 
