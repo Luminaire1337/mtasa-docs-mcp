@@ -30,7 +30,7 @@ Launcher note:
 - You can launch/install via `npx`, `pnpx`, `bunx`, or yarn dlx-style flows,
   but this package still runs on the Node.js runtime.
 
-### From npm (recommended, once published)
+### From npm (recommended)
 
 ```bash
 npm install -g mtasa-docs-mcp
@@ -42,16 +42,9 @@ or:
 pnpm add -g mtasa-docs-mcp
 ```
 
-### One-click MCP install
+### Quick install
 
-[![Add to Cursor](https://img.shields.io/badge/Add_to_Cursor-111111?style=for-the-badge&logo=cursor&logoColor=white)](cursor://anysphere.cursor-deeplink/mcp/install?name=mtasa-docs&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm10YXNhLWRvY3MtbWNwIl19)
-[![Add to VS Code](https://img.shields.io/badge/Add_to_VS_Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mtasa-docs&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mtasa-docs-mcp%22%5D%7D)
-[![Add to VS Code Insiders](https://img.shields.io/badge/Add_to_VS_Code_Insiders-24bfa5?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mtasa-docs&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mtasa-docs-mcp%22%5D%7D&quality=insiders)
-
-Note:
-
-- One-click links that reference `npx -y mtasa-docs-mcp` require the package to
-  be available on npm.
+[![Add mtasa-docs MCP server to Cursor](https://cursor.com/deeplink/mcp-install-dark.png)](https://cursor.com/en-US/install-mcp?name=mtasa-docs&config=eyJjb21tYW5kIjoibnB4IC15IG10YXNhLWRvY3MtbWNwIn0%3D)
 
 ### From source
 
@@ -103,6 +96,12 @@ User: Command Palette -> `MCP: Open User Configuration`
     }
   }
 }
+```
+
+Or add it from terminal:
+
+```bash
+code --add-mcp "{\"name\":\"mtasa-docs\",\"command\":\"npx\",\"args\":[\"-y\",\"mtasa-docs-mcp\"]}"
 ```
 
 ### Claude Code (CLI)
