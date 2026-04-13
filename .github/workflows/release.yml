@@ -122,3 +122,50 @@ jobs:
           PACKAGE_NAME="${{ steps.metadata.outputs.package_name }}"
           ENTRY_PATH="${{ steps.install-published.outputs.test_dir }}/node_modules/${PACKAGE_NAME}/build/index.js"
           node scripts/smoke.mjs --runtime=node "$ENTRY_PATH"
+
+      - name: Install MCP publisher CLI
+        if: steps.npm-check.outputs.should_publish == 'true'
+        env:
+          MCP_PUBLISHER_VERSION: v1.5.0
+          MCP_PUBLISHER_SHA256_LINUX_AMD64: 79bbb73ba048c5906034f73ef6286d7763bd53cf368ea0b358fc593ed360cbd5
+          MCP_PUBLISHER_SHA256_LINUX_ARM64: ba33c656a3fe79e9e01395cc367641cb3847dc9990d299bde3fbcc13c0f830d0
+        run: |
+          OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          ARCH="$(uname -m)"
+          case "$ARCH" in
+            x86_64)
+              ARCH="amd64"
+              EXPECTED_SHA256="${MCP_PUBLISHER_SHA256_LINUX_AMD64}"
+              ;;
+            aarch64|arm64)
+              ARCH="arm64"
+              EXPECTED_SHA256="${MCP_PUBLISHER_SHA256_LINUX_ARM64}"
+              ;;
+            *)
+              echo "Unsupported Linux architecture: $ARCH" >&2
+              exit 1
+              ;;
+          esac
+
+          ARCHIVE="mcp-publisher_${OS}_${ARCH}.tar.gz"
+          URL="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/${ARCHIVE}"
+
+          curl -fsSLo "$ARCHIVE" "$URL"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$ARCHIVE" | sha256sum -c -
+          tar -xzf "$ARCHIVE" mcp-publisher
+          chmod +x ./mcp-publisher
+
+      - name: Sync server manifest version
+        if: steps.npm-check.outputs.should_publish == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_PACKAGE_NAME: ${{ steps.metadata.outputs.package_name }}
+        run: node scripts/sync-server-manifest.mjs
+
+      - name: Authenticate to MCP Registry
+        if: steps.npm-check.outputs.should_publish == 'true'
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to MCP Registry
+        if: steps.npm-check.outputs.should_publish == 'true'
+        run: ./mcp-publisher publish ./server.json
